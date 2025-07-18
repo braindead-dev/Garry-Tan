@@ -1,141 +1,159 @@
-# DARVIS - The Agentic Discord Bot
-<div align="center">
-  <img src="https://github.com/braindead-dev/DARVIS/blob/main/assets/darvis.png?raw=true" alt="NoTrace Logo" width="120" height="120">
-  <h3>The Agentic Discord Bot</h3>
-  <p>Execute complex, multi-step commands with natural language</p>
-</div>
+# Gary Tan Discord Bot
 
-- **Natural Language**: Understands complex Discord-related requests in natural language
-- **Dynamic Generation**: Generates and executes Discord.js v14 code on-the-fly to perform any Discord operation
-- **Multi-Step Operations**: Performs complex tasks by breaking them down into steps, enabling sophisticated and unique commands that go beyond traditional bot capabilities
-- **Extensible Tooling**: Custom built-in GIF tool, and ability to easily add as many tools as needed
-- **Conversation Context**: Maintains conversation history through Discord reply chains
-- **Configurable Limits**: Customizable iteration limits and conversation depth
+A sophisticated Discord bot that embodies Gary Tan, the Canadian-American venture capitalist and CEO of Y Combinator. This bot intelligently participates in group conversations, providing startup advice and engaging discussions about entrepreneurship, venture capital, and the startup ecosystem.
 
-### ⚠️ Security Consideration ⚠️
-- The bot executes LLM-generated code in an unsandboxed environment
-- The current implementation relies on AI alignment + system prompting to prevent malicious code generation. While this gaurdrail works effectively for most cases with a SotA model, this is not a production ready security solution. In production, code should ONLY be executed in a fully isolated sandbox environment.
----
-### 📖 Usage Examples
-```
-@DARVIS ban Henry for spamming
-@DARVIS send a funny gif
-@DARVIS stylize this server's channel names and categories to have a kawaii theme
-@DARVIS DM a philosophical quote to everyone with the philosophy role
-@DARVIS who has sent the most messages in this channel?
-@DARVIS @ a random user in the server
-@DARVIS show me the member count of this server
-@DARVIS list all users who joined in the last 24h
-@DARVIS fix this channel's name to follow the same format as the other channels in this category
-```
----
-### Prerequisites
+## 🚀 Features
 
-- Node.js (v16+)
-- A Discord Bot Token (with intents enabled)
-- An LLM API Key (for any standard completions API; e.g. OpenAI, Anthropic, xAI)
----
-### Setup
+### Smart Conversation Intelligence
+- **Confidence-based Response System**: Uses AI to determine when to participate in group conversations
+- **Context-aware Messaging**: Understands group dynamics and only responds when appropriate
+- **Message History Analysis**: Considers conversation context from the last 10 messages
+- **Personality-driven Responses**: Maintains consistent character as Gary Tan
 
-#### 1. Clone and Install
+### AI-Powered Capabilities
+- **Advanced LLM Integration**: Uses OpenAI's GPT models for natural conversation
+- **Dual-model Architecture**: Separate models for confidence checking and response generation
+- **Tool Integration**: Extensible system for adding new capabilities
+- **GIF Search**: Built-in tool for searching and sharing relevant GIFs
 
-```bash
-git clone https://github.com/braindead-dev/DARVIS
-cd Darvis
-npm i
-```
-#### 2. Discord Bot Setup
+### Configurable Personality
+- **Customizable Communication Style**: Adjustable speaking patterns and tone
+- **Interest-based Responses**: Focuses on Y Combinator, startups, and venture capital
+- **Authentic Character**: Maintains Gary Tan's voice and expertise areas
 
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
-3. Navigate to the "Bot" section
-4. Create a bot and copy the token
-5. Enable the following privileged gateway intents:
-   - **Message Content Intent** (required for reading message content)
-   - **Server Members Intent** (required for member operations)
-  
-#### 3. Environment Configuration
+## 📋 Prerequisites
 
-Create a `.env` file in the root directory that follows the .env.template
+- Node.js (v18 or higher)
+- Discord Bot Token
+- OpenAI API Key
+- A Discord server where you have permission to add bots
 
-#### 4. Invite and Run the Bot
+## 🛠️ Installation
 
-```bash
-# Development
-npm run dev
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Gary-Tan
+   ```
 
-# Production
-npm start
-```
----
-### Configuration Options
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-The bot's behavior is controlled through `src/core/config.ts`. Here's what each setting means:
+3. **Set up environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   # Required
+   DISCORD_TOKEN=your_discord_bot_token_here
+   LLM_API_KEY=your_openai_api_key_here
+   
+   # Optional - API Configuration
+   LLM_API_ENDPOINT=https://api.openai.com/v1/chat/completions
+   LLM_MODEL=gpt-4.1
+   
+   # Optional - Confidence Check Configuration
+   CONFIDENCE_API_ENDPOINT=https://api.openai.com/v1/chat/completions
+   CONFIDENCE_MODEL=gpt-4o
+   ```
 
-#### Core Configuration (`AgentConfig`)
+4. **Build the project**
+   ```bash
+   npm run build
+   ```
 
-| Setting | Type | Description | Default |
-|---------|------|-------------|---------|
-| `apiEndpoint` | string | LLM API endpoint URL | OpenAI's GPT API |
-| `model` | string | LLM model to use | `gpt-4.1` |
-| `systemPrompt` | function | Generates the system prompt for the LLM | Detailed Discord bot instructions |
-| `fallbackMessage` | string | Message sent when max iterations reached | Error message |
-| `maxIterations` | number | Maximum LLM calls per request | `5` |
-| `maxConversationDepth` | number | Max messages to include in context | `10` |
+5. **Start the bot**
+   ```bash
+   npm start
+   ```
 
----
-### Logic Flow
+## 🔧 Configuration
 
-#### 1. Message Processing Pipeline
+### Personality Settings
 
-```
-Discord Message → Filter (mentions bot?) → Build Context → LLM Processing → Execute Actions → Respond
+Edit `src/core/config.ts` to customize the bot's personality:
+
+```typescript
+const PERSONALITY = {
+  name: 'Gary Tan',
+  description: 'Canadian-American venture capitalist, executive, CEO of Y Combinator...',
+  interests: ['Y Combinator', 'startups', 'venture capital', ...],
+  communicationStyle: 'concise, thoughtful, and pragmatic - very approachable and friendly'
+};
 ```
 
-#### 2. Detailed Flow
+### Response Confidence
 
-1. **Message Reception** (`src/index.ts`)
-   - Bot receives a message in Discord
-   - Filters out bot messages and non-mentions
-   - Shows typing indicator
+The bot uses a confidence scoring system (0-1) to determine when to respond:
 
-2. **Context Building** (`src/core/agent.ts#buildConversationHistory`)
-   - Traverses reply chain backwards up to `maxConversationDepth`
-   - Builds conversation history with user info and roles
-   - Formats messages for LLM consumption
+- **High Confidence (0.7-1.0)**: Direct questions, mentions, or highly relevant topics
+- **Medium Confidence (0.4-0.6)**: Related topics but not urgent
+- **Low Confidence (0.0-0.3)**: Unrelated conversations or concluded discussions
 
-3. **LLM Processing Loop** (`src/core/agent.ts#runAgent`)
-   - Sends conversation + system prompt to LLM
-   - LLM decides whether to:
-     - Respond directly with text
-     - Execute Discord.js code
-     - Search for GIFs
-   - Up to `maxIterations` loops allowed
+Adjust the threshold in `AGENT_CONFIG.confidenceCheck.threshold` (default: 0.7).
 
-4. **Code Execution** (`src/tools/executor.ts`)
-   - Creates sandboxed environment
-   - Provides access to `client` and `message` objects
-   - Executes generated Discord.js code
-   - Returns results back to LLM
+### Message History
 
-5. **Response Delivery**
-   - Attempts to reply to original message
-   - Falls back to new message if reply fails
-   - Handles deleted messages gracefully
+Configure how many previous messages the bot considers:
+```typescript
+messageHistoryLimit: 10  // Adjustable in AGENT_CONFIG
+```
 
-#### 3. Tool System
+## 🤖 How It Works
 
-The bot uses a tool-based architecture:
+### Architecture Overview
 
-- **`execute_discord_js_code`**: Executes Discord.js operations
-- **`search_gif`**: Searches and posts GIFs
-- Tools are defined with strict schemas for the LLM
+```
+Discord Message → Confidence Check → Message Processing → Response Generation
+                       ↓                    ↓                    ↓
+                   AI Analysis      Format History      LLM + Tools
+                   (gpt-4o)         (Last 10 msgs)     (gpt-4.1)
+```
 
-#### Adding New Tools
+### Message Processing Flow
+
+1. **Message Reception**: Bot receives all messages but filters out its own
+2. **Confidence Analysis**: AI determines if response is appropriate (0-1 score)
+3. **Context Gathering**: Fetches and formats last 10 messages from channel
+4. **Response Generation**: Uses personality config and context to generate response
+5. **Tool Execution**: Processes any tool calls (e.g., GIF search)
+6. **Message Delivery**: Sends final response to Discord channel
+
+### Intelligent Mention Handling
+
+The bot properly handles Discord mentions:
+- `<@123456789>` → `[Username <@123456789>]`
+- Bot mentions → `[<@me>]`
+- Role mentions → `[RoleName <@&123456789>]`
+- Channel mentions → `[#channel-name <#123456789>]`
+
+## 🔨 Development
+
+### Project Structure
+
+```
+src/
+├── core/
+│   ├── agent.ts      # Main bot logic and message processing
+│   └── config.ts     # Configuration and personality settings
+├── tools/
+│   └── gif-search.ts # GIF search tool implementation
+└── index.ts          # Bot initialization and Discord client setup
+```
+
+### Key Functions
+
+- **`runAgent()`**: Main orchestration function
+- **`shouldRespondToMessage()`**: Confidence-based response filtering
+- **`fetchAndFormatMessages()`**: Message history preparation
+- **`formatMessageContent()`**: Discord mention processing
+
+### Adding New Tools
 
 1. Create a new tool file in `src/tools/`
-2. Export a tool definition object and execution function
-3. Import and add to the tools array in `src/core/agent.ts`
+2. Export a tool definition object with OpenAI function calling format
+3. Export an implementation function
+4. Add to the tools array in `agent.ts`
 
 Example tool structure:
 ```typescript
@@ -143,18 +161,89 @@ export const myTool = {
   type: 'function' as const,
   function: {
     name: 'my_tool',
-    description: 'Description of what the tool does',
-    parameters: {
-      type: 'object',
-      properties: {
-        param1: { type: 'string', description: 'Parameter description' }
-      },
-      required: ['param1']
-    }
+    description: 'Description of what this tool does',
+    parameters: { /* JSON schema */ }
   }
 };
+
+export async function myToolFunction(client: Client, message: Message, args: any) {
+  // Implementation
+}
 ```
 
---- 
-### Contributions
-Always open for contributions!! Feel free to submit a PR
+## 📊 Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DISCORD_TOKEN` | ✅ | - | Discord bot token |
+| `LLM_API_KEY` | ✅ | - | OpenAI API key |
+| `LLM_API_ENDPOINT` | ❌ | OpenAI endpoint | Main LLM API endpoint |
+| `LLM_MODEL` | ❌ | gpt-4.1 | Model for responses |
+| `CONFIDENCE_API_ENDPOINT` | ❌ | OpenAI endpoint | Confidence check API endpoint |
+| `CONFIDENCE_MODEL` | ❌ | gpt-4o | Model for confidence scoring |
+
+## 🎯 Usage Examples
+
+### Natural Conversation
+```
+User: "What's the best way to approach VCs for Series A?"
+Bot: "Focus on demonstrating real traction first..."
+```
+
+### Group Dynamics
+```
+User A: "Anyone know about Y Combinator's latest batch?"
+User B: "I heard they're focusing more on AI startups"
+Bot: "Actually, this batch has incredible diversity..."
+```
+
+### Direct Mentions
+```
+User: "Hey @Gary-Tan, thoughts on this startup idea?"
+Bot: "I'd love to hear more about the problem you're solving..."
+```
+
+## 🚨 Important Notes
+
+- **Group Channel Awareness**: The bot understands it's in group conversations and won't respond to every message
+- **No Self-Response**: Automatically filters out its own messages to prevent loops
+- **Error Handling**: Gracefully handles API failures and network issues
+- **Rate Limiting**: Respects Discord's rate limits with proper error handling
+
+## 📝 Logs and Debugging
+
+The bot provides detailed console output:
+- Confidence scores for each message evaluation
+- Tool execution details
+- Error messages with stack traces
+- Connection status updates
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For issues or questions:
+1. Check the console logs for error messages
+2. Verify your environment variables are set correctly
+3. Ensure your Discord bot has the necessary permissions
+4. Test your OpenAI API key with a simple request
+
+## 🔮 Future Enhancements
+
+- [ ] Web dashboard for configuration
+- [ ] Additional personality profiles
+- [ ] Enhanced tool ecosystem
+- [ ] Conversation analytics
+- [ ] Multi-server support with different configs
+- [ ] Voice channel integration
+- [ ] Scheduled messaging capabilities 
