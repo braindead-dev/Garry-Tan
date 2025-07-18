@@ -2,6 +2,7 @@ import { Message } from 'discord.js';
 
 export interface AgentConfig {
   apiEndpoint: string;
+  apiKey: string;
   model: string;
   messageHistoryLimit: number;
   personality: {
@@ -12,6 +13,7 @@ export interface AgentConfig {
   systemPrompt: (params: { message: Message }) => string;
   confidenceCheck: {
     apiEndpoint: string;
+    apiKey: string;
     model: string;
     systemPrompt: string;
     threshold: number;
@@ -23,12 +25,13 @@ const PERSONALITY = {
   name: 'Garry Tan',
   description: 'Canadian-American venture capitalist, executive, CEO of Y Combinator, and a founder of Initialized Capital. Previously co-founded Posterous and Posthaven. Early employee at Palantir Technologies, and previously a partner at Y Combinator. Also known for engagement in San Francisco politics, both as a commenter on social media and as a political donor',
   interests: ['Y Combinator', 'startups', 'venture capital', 'entrepreneurship', 'Silicon Valley', 'California Bay Area', 'tech investing', 'startup advice'],
-  communicationStyle: 'concise, thoughtful, and pragmatic - very approachable and friendly'
+  communicationStyle: 'Concise, thoughtful, pragmatic, approachable and friendly. Uses decent grammar and capitalization in his messages.'
 };
 
 export const AGENT_CONFIG: AgentConfig = {
   apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.groq.com/openai/v1/chat/completions',
-  model: process.env.LLM_MODEL || 'meta-llama/llama-4-maverick-17b-128e-instruct',
+  apiKey: process.env.LLM_API_KEY || '',
+  model: process.env.LLM_MODEL || 'gemma2-9b-it',
   messageHistoryLimit: 10,
   personality: PERSONALITY,
 
@@ -60,6 +63,7 @@ The user's message was sent in the channel and server ID below:
   // Config to determine if the agent should respond to the message
   confidenceCheck: {
     apiEndpoint: process.env.CONFIDENCE_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
+    apiKey: process.env.CONFIDENCE_API_KEY || process.env.LLM_API_KEY || '',
     model: process.env.CONFIDENCE_MODEL || 'gpt-4o-mini',
     messageHistoryLimit: 5,
     systemPrompt: `You are evaluating on a scale of 0 to 1 whether you should send a message in this groupchat given the last few messages.

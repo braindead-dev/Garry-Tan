@@ -135,7 +135,7 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
     }, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.LLM_API_KEY}`
+        'Authorization': `Bearer ${AGENT_CONFIG.confidenceCheck.apiKey}`
       }
     });
 
@@ -182,7 +182,7 @@ async function callLLM(messages: any[], tools: any[]) {
   }, {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.LLM_API_KEY}`
+      'Authorization': `Bearer ${AGENT_CONFIG.apiKey}`
     }
   });
 
