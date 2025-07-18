@@ -1,6 +1,6 @@
-# Gary Tan Discord Bot
+# Garry Tan Discord Bot
 
-A sophisticated Discord bot that embodies Gary Tan, the Canadian-American venture capitalist and CEO of Y Combinator. This bot intelligently participates in group conversations, providing startup advice and engaging discussions about entrepreneurship, venture capital, and the startup ecosystem.
+A sophisticated Discord bot that embodies Garry Tan, the Canadian-American venture capitalist and CEO of Y Combinator. This bot intelligently participates in group conversations, providing startup advice and engaging discussions about entrepreneurship, venture capital, and the startup ecosystem.
 
 ## 🚀 Features
 
@@ -9,7 +9,7 @@ A sophisticated Discord bot that embodies Gary Tan, the Canadian-American ventur
 - **Auto-trigger on Mentions/Replies**: Automatically responds when mentioned or replied to, bypassing confidence check
 - **Context-aware Messaging**: Understands group dynamics and only responds when appropriate
 - **Message History Analysis**: Considers conversation context from the last 10 messages
-- **Personality-driven Responses**: Maintains consistent character as Gary Tan
+- **Personality-driven Responses**: Maintains consistent character as Garry Tan
 
 ### AI-Powered Capabilities
 - **Advanced LLM Integration**: Uses OpenAI's GPT models for natural conversation
@@ -20,7 +20,7 @@ A sophisticated Discord bot that embodies Gary Tan, the Canadian-American ventur
 ### Configurable Personality
 - **Customizable Communication Style**: Adjustable speaking patterns and tone
 - **Interest-based Responses**: Focuses on Y Combinator, startups, and venture capital
-- **Authentic Character**: Maintains Gary Tan's voice and expertise areas
+- **Authentic Character**: Maintains Garry Tan's voice and expertise areas
 
 ## 📋 Prerequisites
 
@@ -69,7 +69,6 @@ Edit `src/core/config.ts` to customize the bot's personality:
 const PERSONALITY = {
   name: 'Garry Tan',
   description: 'Canadian-American venture capitalist, executive, CEO of Y Combinator...',
-  interests: ['Y Combinator', 'startups', 'venture capital', ...],
   communicationStyle: 'concise, thoughtful, and pragmatic - very approachable and friendly'
 };
 ```
@@ -132,27 +131,15 @@ The bot properly handles Discord mentions:
 
 ### Direct Mentions (Auto-trigger)
 ```
-User: "Hey @Gary-Tan, thoughts on this startup idea?"
+User: "Hey @Garry Tan, thoughts on this startup idea?"
 Bot: "I'd love to hear more about the problem you're solving..."
 ```
 
 ### Replies (Auto-trigger)
 ```
-Gary-Tan: "What stage are you at?"
+Garry Tan: "What stage are you at?"
 User: "We're pre-seed, just built our MVP"
-Bot: "That's exciting! How's user feedback been so far?"
+Garry Tan: "That's exciting! How's user feedback been so far?"
 ```
-
-## 🚨 Important Notes
-
-- **Auto-trigger Responses**: Bot automatically responds when mentioned or replied to, bypassing confidence check
-- **Group Channel Awareness**: The bot understands it's in group conversations and won't respond to every message
-- **No Self-Response**: Automatically filters out its own messages to prevent loops
-- **Error Handling**: Gracefully handles API failures and network issues
-- **Rate Limiting**: Respects Discord's rate limits with proper error handling
-
-## 🔨 Development
-
-### Project Structure
 
 ```
