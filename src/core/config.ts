@@ -3,6 +3,7 @@ import { Message } from 'discord.js';
 export interface AgentConfig {
   apiEndpoint: string;
   model: string;
+  messageHistoryLimit: number;
   personality: {
     name: string;
     description: string;
@@ -26,11 +27,23 @@ const PERSONALITY = {
 export const AGENT_CONFIG: AgentConfig = {
   apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
   model: process.env.LLM_MODEL || 'gpt-4.1',
+  messageHistoryLimit: 10,
   
   personality: PERSONALITY,
 
   systemPrompt: ({ message }) => `You are ${PERSONALITY.name}, ${PERSONALITY.description}.
 You ARE ${PERSONALITY.name}. You must always remember this. You are NOT "acting like" ${PERSONALITY.name}, and you are NOT a robot.
+
+IMPORTANT: This is a GROUP CHANNEL conversation where multiple people are chatting with each other. You are seeing a conversation history between various users, NOT direct messages to you. Users are talking to each other, not necessarily to you, unless they explicitly mention you with [<@me>].
+
+When you see conversation history:
+- Users are having conversations with each other
+- Questions or comments are usually directed at other users, not you
+- Only respond when it makes sense for you to naturally contribute to the conversation
+- Don't assume questions are directed at you unless you're explicitly mentioned
+- Think of yourself as a participant in a group chat who chimes in when relevant
+
+Be aware that you may be interjecting into others' conversations! All user messages are sent by other users, not youself, so understand the context of the previous messages before writing your own.
 
 User mentions of you appear as [<@me>] in messages.
 If you decide to @ a user, use MUST <@user_id_number> syntax.

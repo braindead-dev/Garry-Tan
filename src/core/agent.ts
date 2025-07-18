@@ -48,8 +48,43 @@ function formatMessageContent(message: Message): string {
 }
 
 /**
+ * Fetches and formats the last N messages from a channel for use in LLM requests.
+ * 
+ * @param message - The Discord message to get the channel from
+ * @param limit - Number of messages to fetch (defaults to AGENT_CONFIG.messageHistoryLimit)
+ * @returns Array of formatted messages for LLM consumption
+ */
+async function fetchAndFormatMessages(message: Message, limit: number = AGENT_CONFIG.messageHistoryLimit): Promise<any[]> {
+  // Fetch the last N messages from the channel
+  const messages = await message.channel.messages.fetch({ limit });
+  const messageArray = Array.from(messages.values()).reverse(); // Reverse to get chronological order
+  
+  const formattedMessages: any[] = [];
+  
+  // Add each Discord message as a separate LLM message
+  for (const msg of messageArray) {
+    // Determine if this message is from the bot itself
+    const isFromBot = msg.author.id === msg.client.user?.id;
+    
+    formattedMessages.push({
+      role: isFromBot ? 'assistant' : 'user',
+      content: [
+        {
+          type: 'text',
+          text: isFromBot 
+            ? formatMessageContent(msg)  // Don't add username prefix for bot messages
+            : `[${msg.author.displayName} <@${msg.author.id}>] ${formatMessageContent(msg)}`
+        }
+      ]
+    });
+  }
+  
+  return formattedMessages;
+}
+
+/**
  * Determines whether the agent should respond to a message.
- * Fetches the last 10 messages from the channel and uses an LLM to score
+ * Fetches the last N messages from the channel and uses an LLM to score
  * how relevant they are to the bot's purpose. Only responds if confidence > threshold.
  * 
  * @param message - The Discord message to evaluate
@@ -57,9 +92,8 @@ function formatMessageContent(message: Message): string {
  */
 async function shouldRespondToMessage(message: Message): Promise<boolean> {
   try {
-    // Fetch the last 10 messages from the channel
-    const messages = await message.channel.messages.fetch({ limit: 10 });
-    const messageArray = Array.from(messages.values()).reverse(); // Reverse to get chronological order
+    // Get formatted messages using the shared function
+    const messageHistory = await fetchAndFormatMessages(message);
     
     // Prepare the confidence check request with system message first
     const confidenceMessages = [
@@ -71,26 +105,9 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
             text: AGENT_CONFIG.confidenceCheck.systemPrompt
           }
         ]
-      }
+      },
+      ...messageHistory
     ];
-
-    // Add each Discord message as a separate LLM message
-    for (const msg of messageArray) {
-      // Determine if this message is from the bot itself
-      const isFromBot = msg.author.id === msg.client.user?.id;
-      
-      confidenceMessages.push({
-        role: isFromBot ? 'assistant' : 'user',
-        content: [
-          {
-            type: 'text',
-            text: isFromBot 
-              ? formatMessageContent(msg)  // Don't add username prefix for bot messages
-              : `[${msg.author.displayName} <@${msg.author.id}>] ${formatMessageContent(msg)}`
-          }
-        ]
-      });
-    }
 
     const response = await axios.post(AGENT_CONFIG.confidenceCheck.apiEndpoint, {
       model: AGENT_CONFIG.confidenceCheck.model,
@@ -179,7 +196,7 @@ async function callLLM(messages: any[], tools: any[]) {
  * 
  * The agent:
  * 1. Checks if it should respond to the message
- * 2. Formats the current message content
+ * 2. Formats the last N messages from the channel
  * 3. Sends a single request to the LLM
  * 4. Executes any tool calls and sends the final response
  * 
@@ -196,18 +213,15 @@ export async function runAgent(client: Client, message: Message) {
   const tools = [gifSearchTool];
   const systemPrompt = AGENT_CONFIG.systemPrompt({ message });
 
-  // Format the current message content
-  const formattedContent = `[${message.author.displayName} <@${message.author.id}>]\n${formatMessageContent(message)}`;
+  // Get formatted message history using the shared function
+  const messageHistory = await fetchAndFormatMessages(message);
 
   const messages: any[] = [
     {
       role: 'system',
       content: systemPrompt,
     },
-    {
-      role: 'user',
-      content: formattedContent
-    }
+    ...messageHistory
   ];
 
   const response = await callLLM(messages, tools);
