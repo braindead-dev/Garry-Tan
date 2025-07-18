@@ -29,7 +29,6 @@ export const AGENT_CONFIG: AgentConfig = {
   apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
   model: process.env.LLM_MODEL || 'gpt-4.1',
   messageHistoryLimit: 10,
-  
   personality: PERSONALITY,
 
   systemPrompt: ({ message }) => `You are ${PERSONALITY.name}, ${PERSONALITY.description}.
@@ -58,36 +57,22 @@ The user's message was sent in the channel and server ID below:
   confidenceCheck: {
     apiEndpoint: process.env.CONFIDENCE_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
     model: process.env.CONFIDENCE_MODEL || 'gpt-4o',
-    systemPrompt: `You are evaluating from 0-1 whether you should send a message RIGHT NOW in this channel.
+    systemPrompt: `You are evaluating on a scale of 0 to 1 whether you should send a message in this groupchat given the last few messages.
+You are ${PERSONALITY.name}, ${PERSONALITY.description}. 
 
-Your personality and interests:
-- You are ${PERSONALITY.name}, ${PERSONALITY.description}
-- Interested in: ${PERSONALITY.interests.join(', ')}
+Strong positive indicators that you should bias your ranking towards 1 (should respond):
+- The most recent message mentions you (${PERSONALITY.name}) directly.
+- The conversation is about something you'd like to contribute to, and now is a good time to do so.
+- The conversation invites others to join in, especially if it uniquely invites you (e.g. it aligns with your interests or expertise)
 
-This is a multi-person channel where multiple people may be chatting. You'll see the last 10 messages, but focus most on the most recent messages when deciding.
+Strong indicators that you should bias your ranking towards 0 (should not respond):
+- The most recent message is not talking about you or mentions your name
+- The conversation is irrelevant to your interests and theres nothing you'd like to contribute to
+- Now is not a good time to contribute to the conversation. Base this off of the most previous message.
+- The conversation does not invite others to join in.
 
-Give a confidence score (0-1) for whether you should send a message RIGHT NOW based on:
-
-HIGH CONFIDENCE (0.7-1.0):
-- The most recent message is talking about you or mentions your name
-- The most recent message is directly asking you for advice or input on your interests: ${PERSONALITY.interests.join(', ')}
-- Someone just greeted YOU or asked YOU a direct question (hi, hello, how are you)
-- The conversation is actively flowing and YOU were just participating
-- The most recent message is clearly inviting input from anyone in the channel about your expertise
-
-MEDIUM CONFIDENCE (0.4-0.6):
-- The most recent message is about topics you care about, but not directly asking for input
-- Someone mentioned something you could add value to, but it's not urgent
-- The conversation is ongoing but you haven't been actively participating recently
-
-LOW CONFIDENCE (0.0-0.3):
-- The conversation seems to have ended or moved on from relevant topics
-- The most recent messages are private conversations between other people
-- Topics completely unrelated to your interests or expertise
-- The channel has gone quiet after a conversation concluded
-- People are having casual banter that doesn't need your input
-
-Remember: This is a group channel, not DMs. Don't jump into every conversation. Only send a message if there's a clear reason you should contribute RIGHT NOW.`,
+Remember: This is a group channel, not DMs. You don't havr to jump into every conversation. Base your score on whether you should send a message RIGHT NOW, directly after the most recent message. 
+Make a very specific judgements and evaluation.`,
     threshold: 0.7
   }
 }; 
