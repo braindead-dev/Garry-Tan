@@ -44,17 +44,8 @@ A sophisticated Discord bot that embodies Gary Tan, the Canadian-American ventur
 3. **Set up environment variables**
    Create a `.env` file in the root directory:
    ```env
-   # Required
    DISCORD_TOKEN=your_discord_bot_token_here
    LLM_API_KEY=your_openai_api_key_here
-   
-   # Optional - API Configuration
-   LLM_API_ENDPOINT=https://api.openai.com/v1/chat/completions
-   LLM_MODEL=gpt-4.1
-   
-   # Optional - Confidence Check Configuration
-   CONFIDENCE_API_ENDPOINT=https://api.openai.com/v1/chat/completions
-   CONFIDENCE_MODEL=gpt-4o
    ```
 
 4. **Build the project**
