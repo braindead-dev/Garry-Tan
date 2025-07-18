@@ -49,16 +49,86 @@ function formatMessageContent(message: Message): string {
 
 /**
  * Determines whether the agent should respond to a message.
- * Currently responds to all messages, but this function can be modified
- * later to implement more sophisticated triggering logic.
+ * Fetches the last 10 messages from the channel and uses an LLM to score
+ * how relevant they are to the bot's purpose. Only responds if confidence > threshold.
  * 
  * @param message - The Discord message to evaluate
- * @returns True if the agent should respond, false otherwise
+ * @returns Promise that resolves to true if the agent should respond, false otherwise
  */
-function shouldRespondToMessage(message: Message): boolean {
-  // For now, respond to all messages
-  // This can be modified later to implement more sophisticated logic
-  return true;
+async function shouldRespondToMessage(message: Message): Promise<boolean> {
+  try {
+    // Fetch the last 10 messages from the channel
+    const messages = await message.channel.messages.fetch({ limit: 10 });
+    const messageArray = Array.from(messages.values()).reverse(); // Reverse to get chronological order
+    
+    // Format the messages for the LLM
+    const formattedMessages = messageArray.map(msg => 
+      `[${msg.author.displayName}] ${formatMessageContent(msg)}`
+    ).join('\n');
+
+    // Prepare the confidence check request
+    const confidenceMessages = [
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: AGENT_CONFIG.confidenceCheck.systemPrompt
+          }
+        ]
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: formattedMessages
+          }
+        ]
+      }
+    ];
+
+    const response = await axios.post(AGENT_CONFIG.confidenceCheck.apiEndpoint, {
+      model: AGENT_CONFIG.confidenceCheck.model,
+      messages: confidenceMessages,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'message_send_confidence',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              confidence: {
+                type: 'number',
+                description: 'Value between 0 and 1 representing confidence to send a message',
+                minimum: 0,
+                maximum: 1
+              }
+            },
+            required: ['confidence'],
+            additionalProperties: false
+          }
+        }
+      }
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.LLM_API_KEY}`
+      }
+    });
+
+    const result = JSON.parse(response.data.choices[0].message.content);
+    const confidence = result.confidence;
+    
+    console.log(`Confidence score: ${confidence} (threshold: ${AGENT_CONFIG.confidenceCheck.threshold})`);
+    
+    return confidence >= AGENT_CONFIG.confidenceCheck.threshold;
+  } catch (error) {
+    console.error('Error checking message confidence:', error);
+    // If there's an error, default to not responding
+    return false;
+  }
 }
 
 /**
@@ -115,7 +185,7 @@ async function callLLM(messages: any[], tools: any[]) {
  */
 export async function runAgent(client: Client, message: Message) {
   // Check if we should respond to this message
-  if (!shouldRespondToMessage(message)) {
+  if (!(await shouldRespondToMessage(message))) {
     return;
   }
 
