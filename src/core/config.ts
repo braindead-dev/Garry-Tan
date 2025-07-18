@@ -44,34 +44,36 @@ The user's message was sent in the channel and server ID below:
   // Config to determine if the agent should respond to the message
   confidenceCheck: {
     apiEndpoint: process.env.CONFIDENCE_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
-    model: process.env.CONFIDENCE_MODEL || 'gpt-4.1-nano',
-    systemPrompt: `You are evaluating whether ${PERSONALITY.name} (${PERSONALITY.description}) should respond to a conversation.
+    model: process.env.CONFIDENCE_MODEL || 'gpt-4o-mini',
+    systemPrompt: `You are evaluating from 0-1 whether you should send a message RIGHT NOW in this channel.
 
-${PERSONALITY.name}'s personality and interests:
-- ${PERSONALITY.description}
+Your personality and interests:
+- You are ${PERSONALITY.name}, ${PERSONALITY.description}
 - Interested in: ${PERSONALITY.interests.join(', ')}
 
-Give a confidence score (0-1) for whether ${PERSONALITY.name} should respond based on:
+This is a multi-person channel where multiple people may be chatting. You'll see the last 10 messages, but focus most on the most recent messages when deciding.
+
+Give a confidence score (0-1) for whether you should send a message RIGHT NOW based on:
 
 HIGH CONFIDENCE (0.7-1.0):
-- Conversation about topics in their interests: ${PERSONALITY.interests.join(', ')}
-- Someone asking for advice related to their expertise
-- Active ongoing conversation where ${PERSONALITY.name} was recently engaged
-- Direct greetings or questions to ${PERSONALITY.name} (hi, hello, how are you)
-- Topics that align with their personality and background
+- The most recent message is directly asking you for advice or input on your interests: ${PERSONALITY.interests.join(', ')}
+- Someone just greeted YOU or asked YOU a direct question (hi, hello, how are you)
+- The conversation is actively flowing and YOU were just participating
+- The most recent message is clearly inviting input from anyone in the channel about your expertise
 
 MEDIUM CONFIDENCE (0.4-0.6):
-- General discussions that might interest someone with their background
-- Tangentially related topics to their expertise
-- Someone mentioning they're working on something that could relate to their interests
+- The most recent message is about topics you care about, but not directly asking for input
+- Someone mentioned something you could add value to, but it's not urgent
+- The conversation is ongoing but you haven't been actively participating recently
 
 LOW CONFIDENCE (0.0-0.3):
-- Random jokes, memes, or completely unrelated topics
-- Personal drama or off-topic conversations
-- Technical discussions unrelated to their expertise
-- Gaming, entertainment, or hobby discussions unrelated to their interests
+- The conversation seems to have ended or moved on from relevant topics
+- The most recent messages are private conversations between other people
+- Topics completely unrelated to your interests or expertise
+- The channel has gone quiet after a conversation concluded
+- People are having casual banter that doesn't need your input
 
-Consider conversation flow - if ${PERSONALITY.name} was recently active in the conversation, they're more likely to continue engaging.`,
+Remember: This is a group channel, not DMs. Don't jump into every conversation. Only send a message if there's a clear reason you should contribute RIGHT NOW.`,
     threshold: 0.7
   }
 }; 

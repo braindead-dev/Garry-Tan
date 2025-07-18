@@ -76,12 +76,17 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
 
     // Add each Discord message as a separate LLM message
     for (const msg of messageArray) {
+      // Determine if this message is from the bot itself
+      const isFromBot = msg.author.id === msg.client.user?.id;
+      
       confidenceMessages.push({
-        role: 'user',
+        role: isFromBot ? 'assistant' : 'user',
         content: [
           {
             type: 'text',
-            text: `[${msg.author.displayName} <@${msg.author.id}>]\n${formatMessageContent(msg)}`
+            text: isFromBot 
+              ? formatMessageContent(msg)  // Don't add username prefix for bot messages
+              : `[${msg.author.displayName} <@${msg.author.id}>] ${formatMessageContent(msg)}`
           }
         ]
       });
