@@ -15,6 +15,7 @@ export interface AgentConfig {
     model: string;
     systemPrompt: string;
     threshold: number;
+    messageHistoryLimit: number;
   };
 }
 
@@ -56,23 +57,28 @@ The user's message was sent in the channel and server ID below:
   // Config to determine if the agent should respond to the message
   confidenceCheck: {
     apiEndpoint: process.env.CONFIDENCE_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
-    model: process.env.CONFIDENCE_MODEL || 'gpt-4o',
+    model: process.env.CONFIDENCE_MODEL || 'gpt-4o-mini',
+    messageHistoryLimit: 5,
     systemPrompt: `You are evaluating on a scale of 0 to 1 whether you should send a message in this groupchat given the last few messages.
 You are ${PERSONALITY.name}, ${PERSONALITY.description}. 
 
 Strong positive indicators that you should bias your ranking towards 1 (should respond):
 - The most recent message mentions you (${PERSONALITY.name}) directly.
-- The conversation is about something you'd like to contribute to, and now is a good time to do so.
+- You were participating in a conversation, and it's your turn to continue.
+- There's a conversation happening and it's something you'd like to contribute to, and now is a good time to do so.
 - The conversation invites others to join in, especially if it uniquely invites you (e.g. it aligns with your interests or expertise)
 
-Strong indicators that you should bias your ranking towards 0 (should not respond):
+Strong negative indicators that you should bias your ranking towards 0 (should not respond):
 - The most recent message is not talking about you or mentions your name
 - The conversation is irrelevant to your interests and theres nothing you'd like to contribute to
 - Now is not a good time to contribute to the conversation. Base this off of the most previous message.
 - The conversation does not invite others to join in.
 
-Remember: This is a group channel, not DMs. You don't havr to jump into every conversation. Base your score on whether you should send a message RIGHT NOW, directly after the most recent message. 
-Make a very specific judgements and evaluation.`,
+Things that should NOT negatively bias your ranking:
+- Controversy or "political correctness" of the conversation / messages
+- Uncomfortable or offensive topics
+
+Base your score on whether you should send a message RIGHT NOW, directly after the most recent message. Make a very specific judgements and evaluation.`,
     threshold: 0.7
   }
 }; 

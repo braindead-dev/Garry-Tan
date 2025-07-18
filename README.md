@@ -87,8 +87,18 @@ Adjust the threshold in `AGENT_CONFIG.confidenceCheck.threshold` (default: 0.7).
 
 Configure how many previous messages the bot considers:
 ```typescript
-messageHistoryLimit: 10  // Adjustable in AGENT_CONFIG
+messageHistoryLimit: 10  // Adjustable in AGENT_CONFIG - used for response generation
 ```
+
+The confidence check system has its own separate message history limit:
+```typescript
+confidenceCheck: {
+  messageHistoryLimit: 5,  // Separate limit for confidence evaluation
+  // ... other config
+}
+```
+
+This allows the confidence check to consider fewer messages (for faster evaluation) while the response generation can use more context.
 
 ## 🤖 How It Works
 

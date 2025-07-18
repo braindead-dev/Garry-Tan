@@ -93,7 +93,7 @@ async function fetchAndFormatMessages(message: Message, limit: number = AGENT_CO
 async function shouldRespondToMessage(message: Message): Promise<boolean> {
   try {
     // Get formatted messages using the shared function
-    const messageHistory = await fetchAndFormatMessages(message);
+    const messageHistory = await fetchAndFormatMessages(message, AGENT_CONFIG.confidenceCheck.messageHistoryLimit);
     
     // Prepare the confidence check request with system message first
     const confidenceMessages = [
