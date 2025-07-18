@@ -66,7 +66,7 @@ Edit `src/core/config.ts` to customize the bot's personality:
 
 ```typescript
 const PERSONALITY = {
-  name: 'Gary Tan',
+  name: 'Garry Tan',
   description: 'Canadian-American venture capitalist, executive, CEO of Y Combinator...',
   interests: ['Y Combinator', 'startups', 'venture capital', ...],
   communicationStyle: 'concise, thoughtful, and pragmatic - very approachable and friendly'
