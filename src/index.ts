@@ -43,15 +43,16 @@ client.once('ready', () => {
  * Event handler for new messages in Discord channels.
  * 
  * This handler:
- * 1. Filters out bot messages and messages that don't mention this bot
+ * 1. Filters out messages from this bot to prevent self-responses
  * 2. Shows typing indicator while processing
- * 3. Delegates to the AI agent for processing
+ * 3. Delegates to the AI agent for processing (agent handles its own filtering)
  * 4. Handles any errors that occur during processing
  * 
  * @param message - The Discord message that was created
  */
 client.on('messageCreate', async (message) => {
-  if (message.author.bot || !message.mentions.has(client.user!.id)) {
+  // Only filter out messages from this bot to prevent self-responses
+  if (message.author.id === client.user!.id) {
     return;
   }
 
