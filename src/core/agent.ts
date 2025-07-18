@@ -153,19 +153,17 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
 }
 
 /**
- * Sends a message to the same channel as the original message.
+ * Replies to the message that triggered the response.
  * 
  * @param message - The Discord message that triggered the response
  * @param content - The content to send
- * @returns Promise that resolves when the message is sent or fails silently
+ * @returns Promise that resolves when the reply is sent or fails silently
  */
-async function sendMessageToChannel(message: Message, content: string) {
+async function replyToMessage(message: Message, content: string) {
   try {
-    if (message.channel.isTextBased()) {
-      await (message.channel as any).send(content);
-    }
+    await message.reply(content);
   } catch (error) {
-    console.error('Failed to send message:', error);
+    console.error('Failed to reply to message:', error);
   }
 }
 
@@ -195,7 +193,7 @@ async function callLLM(messages: any[], tools: any[]) {
  * Runs the AI agent to process a Discord message and generate a single response.
  * 
  * The agent:
- * 1. Checks if it should respond to the message
+ * 1. Checks if it should auto-trigger (mention/reply) or passes confidence check
  * 2. Formats the last N messages from the channel
  * 3. Sends a single request to the LLM
  * 4. Executes any tool calls and sends the final response
@@ -205,9 +203,17 @@ async function callLLM(messages: any[], tools: any[]) {
  * @returns Promise that resolves when the agent completes its task
  */
 export async function runAgent(client: Client, message: Message) {
-  // Check if we should respond to this message
-  if (!(await shouldRespondToMessage(message))) {
+
+  // Check if we should auto-trigger / pass confidence check  
+  if (message.mentions.users.has(message.client.user!.id)) {
+    console.log('Auto-triggering response (bot mentioned)');
+  } else if (!(await shouldRespondToMessage(message))) {
     return;
+  }
+
+  // Start typing indicator
+  if (message.channel.isTextBased()) {
+    await (message.channel as any).sendTyping();
   }
 
   const tools = [gifSearchTool];
@@ -256,12 +262,12 @@ export async function runAgent(client: Client, message: Message) {
     const finalAssistantMessage = finalChoice.message;
 
     if (finalAssistantMessage.content) {
-      await sendMessageToChannel(message, finalAssistantMessage.content);
+      await replyToMessage(message, finalAssistantMessage.content);
     }
   } else {
     // No tool calls, send the response directly
     if (assistantMessage.content) {
-      await sendMessageToChannel(message, assistantMessage.content);
+      await replyToMessage(message, assistantMessage.content);
     }
   }
 } 

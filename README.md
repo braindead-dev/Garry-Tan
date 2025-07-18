@@ -6,6 +6,7 @@ A sophisticated Discord bot that embodies Gary Tan, the Canadian-American ventur
 
 ### Smart Conversation Intelligence
 - **Confidence-based Response System**: Uses AI to determine when to participate in group conversations
+- **Auto-trigger on Mentions/Replies**: Automatically responds when mentioned or replied to, bypassing confidence check
 - **Context-aware Messaging**: Understands group dynamics and only responds when appropriate
 - **Message History Analysis**: Considers conversation context from the last 10 messages
 - **Personality-driven Responses**: Maintains consistent character as Gary Tan
@@ -114,11 +115,12 @@ Discord Message → Confidence Check → Message Processing → Response Generat
 ### Message Processing Flow
 
 1. **Message Reception**: Bot receives all messages but filters out its own
-2. **Confidence Analysis**: AI determines if response is appropriate (0-1 score)
-3. **Context Gathering**: Fetches and formats last 10 messages from channel
-4. **Response Generation**: Uses personality config and context to generate response
-5. **Tool Execution**: Processes any tool calls (e.g., GIF search)
-6. **Message Delivery**: Sends final response to Discord channel
+2. **Auto-trigger Check**: If bot is mentioned or replied to, skip confidence check and respond
+3. **Confidence Analysis**: AI determines if response is appropriate (0-1 score)
+4. **Context Gathering**: Fetches and formats last 10 messages from channel
+5. **Response Generation**: Uses personality config and context to generate response
+6. **Tool Execution**: Processes any tool calls (e.g., GIF search)
+7. **Message Delivery**: Replies to the triggering message
 
 ### Intelligent Mention Handling
 
@@ -128,123 +130,29 @@ The bot properly handles Discord mentions:
 - Role mentions → `[RoleName <@&123456789>]`
 - Channel mentions → `[#channel-name <#123456789>]`
 
-## 🔨 Development
-
-### Project Structure
-
-```
-src/
-├── core/
-│   ├── agent.ts      # Main bot logic and message processing
-│   └── config.ts     # Configuration and personality settings
-├── tools/
-│   └── gif-search.ts # GIF search tool implementation
-└── index.ts          # Bot initialization and Discord client setup
-```
-
-### Key Functions
-
-- **`runAgent()`**: Main orchestration function
-- **`shouldRespondToMessage()`**: Confidence-based response filtering
-- **`fetchAndFormatMessages()`**: Message history preparation
-- **`formatMessageContent()`**: Discord mention processing
-
-### Adding New Tools
-
-1. Create a new tool file in `src/tools/`
-2. Export a tool definition object with OpenAI function calling format
-3. Export an implementation function
-4. Add to the tools array in `agent.ts`
-
-Example tool structure:
-```typescript
-export const myTool = {
-  type: 'function' as const,
-  function: {
-    name: 'my_tool',
-    description: 'Description of what this tool does',
-    parameters: { /* JSON schema */ }
-  }
-};
-
-export async function myToolFunction(client: Client, message: Message, args: any) {
-  // Implementation
-}
-```
-
-## 📊 Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DISCORD_TOKEN` | ✅ | - | Discord bot token |
-| `LLM_API_KEY` | ✅ | - | OpenAI API key |
-| `LLM_API_ENDPOINT` | ❌ | OpenAI endpoint | Main LLM API endpoint |
-| `LLM_MODEL` | ❌ | gpt-4.1 | Model for responses |
-| `CONFIDENCE_API_ENDPOINT` | ❌ | OpenAI endpoint | Confidence check API endpoint |
-| `CONFIDENCE_MODEL` | ❌ | gpt-4o | Model for confidence scoring |
-
-## 🎯 Usage Examples
-
-### Natural Conversation
-```
-User: "What's the best way to approach VCs for Series A?"
-Bot: "Focus on demonstrating real traction first..."
-```
-
-### Group Dynamics
-```
-User A: "Anyone know about Y Combinator's latest batch?"
-User B: "I heard they're focusing more on AI startups"
-Bot: "Actually, this batch has incredible diversity..."
-```
-
-### Direct Mentions
+### Direct Mentions (Auto-trigger)
 ```
 User: "Hey @Gary-Tan, thoughts on this startup idea?"
 Bot: "I'd love to hear more about the problem you're solving..."
 ```
 
+### Replies (Auto-trigger)
+```
+Gary-Tan: "What stage are you at?"
+User: "We're pre-seed, just built our MVP"
+Bot: "That's exciting! How's user feedback been so far?"
+```
+
 ## 🚨 Important Notes
 
+- **Auto-trigger Responses**: Bot automatically responds when mentioned or replied to, bypassing confidence check
 - **Group Channel Awareness**: The bot understands it's in group conversations and won't respond to every message
 - **No Self-Response**: Automatically filters out its own messages to prevent loops
 - **Error Handling**: Gracefully handles API failures and network issues
 - **Rate Limiting**: Respects Discord's rate limits with proper error handling
 
-## 📝 Logs and Debugging
+## 🔨 Development
 
-The bot provides detailed console output:
-- Confidence scores for each message evaluation
-- Tool execution details
-- Error messages with stack traces
-- Connection status updates
+### Project Structure
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For issues or questions:
-1. Check the console logs for error messages
-2. Verify your environment variables are set correctly
-3. Ensure your Discord bot has the necessary permissions
-4. Test your OpenAI API key with a simple request
-
-## 🔮 Future Enhancements
-
-- [ ] Web dashboard for configuration
-- [ ] Additional personality profiles
-- [ ] Enhanced tool ecosystem
-- [ ] Conversation analytics
-- [ ] Multi-server support with different configs
-- [ ] Voice channel integration
-- [ ] Scheduled messaging capabilities 
+```

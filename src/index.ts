@@ -57,7 +57,6 @@ client.on('messageCreate', async (message) => {
   }
 
   try {
-    await message.channel.sendTyping();
     await runAgent(client, message);
   } catch (error) {
     console.error('An error occurred in the agent:', error);
