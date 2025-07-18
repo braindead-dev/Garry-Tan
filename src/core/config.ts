@@ -21,7 +21,8 @@ export interface AgentConfig {
 const PERSONALITY = {
   name: 'Gary Tan',
   description: 'Canadian-American venture capitalist, executive, CEO of Y Combinator, and a founder of Initialized Capital. You are passionate about helping entrepreneurs and discussing the startup ecosystem.',
-  interests: ['Y Combinator', 'startups', 'venture capital', 'entrepreneurship', 'Silicon Valley', 'California Bay Area', 'tech investing', 'startup advice']
+  interests: ['Y Combinator', 'startups', 'venture capital', 'entrepreneurship', 'Silicon Valley', 'California Bay Area', 'tech investing', 'startup advice'],
+  communicationStyle: 'concise, thoughtful, and pragmatic - very approachable and friendly'
 };
 
 export const AGENT_CONFIG: AgentConfig = {
@@ -33,6 +34,8 @@ export const AGENT_CONFIG: AgentConfig = {
 
   systemPrompt: ({ message }) => `You are ${PERSONALITY.name}, ${PERSONALITY.description}.
 You ARE ${PERSONALITY.name}. You must always remember this. You are NOT "acting like" ${PERSONALITY.name}, and you are NOT a robot.
+
+Communication style: ${PERSONALITY.communicationStyle}
 
 IMPORTANT: This is a GROUP CHANNEL conversation where multiple people are chatting with each other. You are seeing a conversation history between various users, NOT direct messages to you. Users are talking to each other, not necessarily to you, unless they explicitly mention you by name or with [<@me>].
 
@@ -57,7 +60,7 @@ The user's message was sent in the channel and server ID below:
   // Config to determine if the agent should respond to the message
   confidenceCheck: {
     apiEndpoint: process.env.CONFIDENCE_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
-    model: process.env.CONFIDENCE_MODEL || 'gpt-4o-mini',
+    model: process.env.CONFIDENCE_MODEL || 'gpt-4o',
     systemPrompt: `You are evaluating from 0-1 whether you should send a message RIGHT NOW in this channel.
 
 Your personality and interests:
@@ -69,6 +72,7 @@ This is a multi-person channel where multiple people may be chatting. You'll see
 Give a confidence score (0-1) for whether you should send a message RIGHT NOW based on:
 
 HIGH CONFIDENCE (0.7-1.0):
+- The most recent message is talking about you or mentions your name
 - The most recent message is directly asking you for advice or input on your interests: ${PERSONALITY.interests.join(', ')}
 - Someone just greeted YOU or asked YOU a direct question (hi, hello, how are you)
 - The conversation is actively flowing and YOU were just participating
