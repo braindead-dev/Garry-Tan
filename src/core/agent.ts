@@ -61,12 +61,7 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
     const messages = await message.channel.messages.fetch({ limit: 10 });
     const messageArray = Array.from(messages.values()).reverse(); // Reverse to get chronological order
     
-    // Format the messages for the LLM
-    const formattedMessages = messageArray.map(msg => 
-      `[${msg.author.displayName}] ${formatMessageContent(msg)}`
-    ).join('\n');
-
-    // Prepare the confidence check request
+    // Prepare the confidence check request with system message first
     const confidenceMessages = [
       {
         role: 'system',
@@ -76,17 +71,21 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
             text: AGENT_CONFIG.confidenceCheck.systemPrompt
           }
         ]
-      },
-      {
+      }
+    ];
+
+    // Add each Discord message as a separate LLM message
+    for (const msg of messageArray) {
+      confidenceMessages.push({
         role: 'user',
         content: [
           {
             type: 'text',
-            text: formattedMessages
+            text: `[${msg.author.displayName} <@${msg.author.id}>]\n${formatMessageContent(msg)}`
           }
         ]
-      }
-    ];
+      });
+    }
 
     const response = await axios.post(AGENT_CONFIG.confidenceCheck.apiEndpoint, {
       model: AGENT_CONFIG.confidenceCheck.model,
