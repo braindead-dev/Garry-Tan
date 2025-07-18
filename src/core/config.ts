@@ -5,6 +5,8 @@ export interface AgentConfig {
   apiKey: string;
   model: string;
   messageHistoryLimit: number;
+  splitMessages: boolean;
+  messageSplitDelay: number;
   personality: {
     name: string;
     description: string;
@@ -33,6 +35,8 @@ export const AGENT_CONFIG: AgentConfig = {
   apiKey: process.env.LLM_API_KEY || '',
   model: process.env.LLM_MODEL || 'gemma2-9b-it',
   messageHistoryLimit: 10,
+  splitMessages: true,
+  messageSplitDelay: 200,
   personality: PERSONALITY,
 
   systemPrompt: ({ message }) => `You are ${PERSONALITY.name}. Description: "${PERSONALITY.description}."

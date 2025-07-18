@@ -153,17 +153,42 @@ async function shouldRespondToMessage(message: Message): Promise<boolean> {
 }
 
 /**
- * Replies to the message that triggered the response.
+ * Sends a message that may contain multiple parts split by double newlines.
+ * The first part is sent as a reply, subsequent parts are sent as regular messages.
  * 
  * @param message - The Discord message that triggered the response
- * @param content - The content to send
- * @returns Promise that resolves when the reply is sent or fails silently
+ * @param content - The content to send (may contain double newlines)
+ * @returns Promise that resolves when all messages are sent or fails silently
  */
-async function replyToMessage(message: Message, content: string) {
+async function sendResponse(message: Message, content: string) {
   try {
-    await message.reply(content);
+    // Check if message splitting is enabled
+    if (!AGENT_CONFIG.splitMessages) {
+      await message.reply(content);
+      return;
+    }
+
+    // Split messages on double newlines
+    const parts = content.split('\n\n').filter(part => part.trim().length > 0);
+    
+    if (parts.length === 0) return;
+    
+    // Send the first part as a reply
+    await message.reply(parts[0]);
+    
+    // Send remaining parts as regular messages with configurable delay
+    if ('send' in message.channel && parts.length > 1) {
+      for (let i = 1; i < parts.length; i++) {
+        // Show typing indicator and wait for configured delay before sending next part
+        if (AGENT_CONFIG.messageSplitDelay > 0) {
+          await message.channel.sendTyping();
+          await new Promise(resolve => setTimeout(resolve, AGENT_CONFIG.messageSplitDelay));
+        }
+        await message.channel.send(parts[i]);
+      }
+    }
   } catch (error) {
-    console.error('Failed to reply to message:', error);
+    console.error('Failed to send response:', error);
   }
 }
 
@@ -262,12 +287,12 @@ export async function runAgent(client: Client, message: Message) {
     const finalAssistantMessage = finalChoice.message;
 
     if (finalAssistantMessage.content) {
-      await replyToMessage(message, finalAssistantMessage.content);
+      await sendResponse(message, finalAssistantMessage.content);
     }
   } else {
     // No tool calls, send the response directly
     if (assistantMessage.content) {
-      await replyToMessage(message, assistantMessage.content);
+      await sendResponse(message, assistantMessage.content);
     }
   }
 } 
