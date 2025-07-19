@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Client, Message } from 'discord.js';
-import { searchGif, gifSearchTool } from '../tools/gif-search.js';
 import { AGENT_CONFIG } from './config.js';
+import { getAvailableTools, handleToolCalls } from './tool-handler.js';
 
 /**
  * Formats Discord message content to make mentions more intelligible.
@@ -203,7 +203,8 @@ async function callLLM(messages: any[], tools: any[]) {
   const response = await axios.post(AGENT_CONFIG.apiEndpoint, {
     model: AGENT_CONFIG.model,
     messages,
-    tools
+    tools,
+    tool_choice: 'auto',
   }, {
     headers: {
       'Content-Type': 'application/json',
@@ -241,7 +242,7 @@ export async function runAgent(client: Client, message: Message) {
     await (message.channel as any).sendTyping();
   }
 
-  const tools = [gifSearchTool];
+  const tools = getAvailableTools();
   const systemPrompt = AGENT_CONFIG.systemPrompt({ message });
 
   // Get formatted message history using the shared function
@@ -259,27 +260,20 @@ export async function runAgent(client: Client, message: Message) {
   const choice = response.choices[0];
   const assistantMessage = choice.message;
 
+  // Add the assistant's response to the message history.
+  // This is crucial for the model to understand the context of the tool call.
+  messages.push(assistantMessage);
+
   // Handle tool calls if present
   if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-    for (const toolCall of assistantMessage.tool_calls) {
-      const args = JSON.parse(toolCall.function.arguments);
-      let result;
+    const toolResultMessages = await handleToolCalls(
+      assistantMessage.tool_calls,
+      client,
+      message,
+    );
 
-      // Direct the tool call to the correct tool
-      if (toolCall.function.name === 'search_gif') {
-        result = await searchGif(client, message, args.query);
-      }
-
-      console.log(`Executing ${toolCall.function.name}:`, args);
-      console.log(`Result:`, result);
-      
-      // Add the tool result to the conversation
-      messages.push({
-        role: 'tool',
-        tool_call_id: toolCall.id,
-        content: JSON.stringify(result)
-      });
-    }
+    // Add tool results to the conversation
+    messages.push(...toolResultMessages);
 
     // Make a final call to get the response after tool execution
     const finalResponse = await callLLM(messages, tools);
