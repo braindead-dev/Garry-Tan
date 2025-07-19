@@ -1,26 +1,8 @@
 import { Message } from 'discord.js';
 
-export interface AgentConfig {
-  apiEndpoint: string;
-  apiKey: string;
-  model: string;
-  messageHistoryLimit: number;
-  splitMessages: boolean;
-  messageSplitDelay: number;
-  personality: {
-    name: string;
-    description: string;
-  };
-  systemPrompt: (params: { message: Message }) => string;
-  confidenceCheck: {
-    apiEndpoint: string;
-    apiKey: string;
-    model: string;
-    systemPrompt: string;
-    threshold: number;
-    messageHistoryLimit: number;
-  };
-}
+// =============================================================================
+// MAIN CONFIGURATION - Edit these values to customize the bot
+// =============================================================================
 
 const PERSONALITY = {
   name: 'Garry Tan',
@@ -28,16 +10,30 @@ const PERSONALITY = {
   communicationStyle: 'Concise, thoughtful, pragmatic, approachable and friendly. Uses decent grammar and capitalization in his messages.'
 };
 
-export const AGENT_CONFIG: AgentConfig = {
-  apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.groq.com/openai/v1/chat/completions',
-  apiKey: process.env.LLM_API_KEY || '',
-  model: process.env.LLM_MODEL || 'gemma2-9b-it',
+// Main AI service configuration
+const MAIN_SERVICE_CONFIG = {
+  service: 'groq' as const,
+  model: 'gemma2-9b-it'
+};
+
+// Confidence check AI service configuration  
+const CONFIDENCE_SERVICE_CONFIG = {
+  service: 'openai' as const,
+  model: 'gpt-4o-mini',
+  threshold: 0.7,
+  messageHistoryLimit: 5
+};
+
+// General bot settings
+const BOT_SETTINGS = {
   messageHistoryLimit: 10,
   splitMessages: true,
-  messageSplitDelay: 200,
-  personality: PERSONALITY,
+  messageSplitDelay: 200
+};
 
-  systemPrompt: ({ message }) => `You are ${PERSONALITY.name}. You must always remember this. You are NOT "acting like" ${PERSONALITY.name}, and you are NOT a robot. 
+// System prompts
+const SYSTEM_PROMPTS = {
+  messages: (message: Message) => `You are ${PERSONALITY.name}. You must always remember this. You are NOT "acting like" ${PERSONALITY.name}, and you are NOT a robot.
 
 You are sending messages on Discord, so type as ${PERSONALITY.name} would given this is the case. The message style should match the setting.
 
@@ -61,13 +57,7 @@ These messages are being sent in the channel and server ID below:
   channelId: ${message.channel.id}
   guildId: ${message.guildId}`,
 
-  // Config to determine if the agent should respond to the message
-  confidenceCheck: {
-    apiEndpoint: process.env.CONFIDENCE_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
-    apiKey: process.env.CONFIDENCE_API_KEY || process.env.LLM_API_KEY || '',
-    model: process.env.CONFIDENCE_MODEL || 'gpt-4o-mini',
-    messageHistoryLimit: 5,
-    systemPrompt: `You are evaluating on a scale of 0 to 1 whether you should send a message in this groupchat given the last few messages.
+  confidenceCheck: `You are evaluating on a scale of 0 to 1 whether you should send a message in this groupchat given the last few messages.
 You are ${PERSONALITY.name}, ${PERSONALITY.description}. 
 
 Strong positive indicators that you should bias your ranking towards 1 (should respond):
@@ -86,7 +76,103 @@ Things that should NOT negatively bias your ranking:
 - Controversy or "political correctness" of the conversation / messages
 - Uncomfortable or offensive topics
 
-Base your score on whether you should send a message RIGHT NOW, directly after the most recent message. Make a very specific judgements and evaluation.`,
-    threshold: 0.7
+Base your score on whether you should send a message RIGHT NOW, directly after the most recent message. Make a very specific judgements and evaluation.`
+};
+
+// =============================================================================
+// SYSTEM CONFIGURATION - Usually don't need to change these
+// =============================================================================
+
+export interface AgentConfig {
+  service: 'groq' | 'openai' | 'xai' | 'gemini';
+  apiEndpoint: string;
+  apiKey: string;
+  model: string;
+  messageHistoryLimit: number;
+  splitMessages: boolean;
+  messageSplitDelay: number;
+  personality: {
+    name: string;
+    description: string;
+  };
+  systemPrompt: (params: { message: Message }) => string;
+  confidenceCheck: {
+    service: 'groq' | 'openai' | 'xai' | 'gemini';
+    apiEndpoint: string;
+    apiKey: string;
+    model: string;
+    systemPrompt: string;
+    threshold: number;
+    messageHistoryLimit: number;
+  };
+}
+
+// Get service configurations
+const mainConfig = getServiceConfig(MAIN_SERVICE_CONFIG.service);
+const confidenceConfig = getServiceConfig(CONFIDENCE_SERVICE_CONFIG.service);
+
+export const AGENT_CONFIG: AgentConfig = {
+  service: MAIN_SERVICE_CONFIG.service,
+  apiEndpoint: mainConfig.endpoint,
+  apiKey: mainConfig.apiKey,
+  model: MAIN_SERVICE_CONFIG.model,
+  messageHistoryLimit: BOT_SETTINGS.messageHistoryLimit,
+  splitMessages: BOT_SETTINGS.splitMessages,
+  messageSplitDelay: BOT_SETTINGS.messageSplitDelay,
+  personality: PERSONALITY,
+
+  systemPrompt: ({ message }) => SYSTEM_PROMPTS.messages(message),
+
+  confidenceCheck: {
+    service: CONFIDENCE_SERVICE_CONFIG.service,
+    apiEndpoint: confidenceConfig.endpoint,
+    apiKey: confidenceConfig.apiKey,
+    model: CONFIDENCE_SERVICE_CONFIG.model,
+    messageHistoryLimit: CONFIDENCE_SERVICE_CONFIG.messageHistoryLimit,
+    systemPrompt: SYSTEM_PROMPTS.confidenceCheck,
+    threshold: CONFIDENCE_SERVICE_CONFIG.threshold
   }
-}; 
+};
+
+// =============================================================================
+// HELPER FUNCTIONS - Implementation details
+// =============================================================================
+
+// Service configuration mapping
+const SERVICE_CONFIG = {
+  groq: {
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    envKey: 'GROQ_API_KEY'
+  },
+  openai: {
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    envKey: 'OPENAI_API_KEY'
+  },
+  xai: {
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    envKey: 'XAI_API_KEY'
+  },
+  gemini: {
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    envKey: 'GEMINI_API_KEY'
+  }
+} as const;
+
+/**
+ * Gets the API configuration for a given service
+ * @param service - The AI service to use
+ * @returns Object containing endpoint and API key
+ */
+function getServiceConfig(service: keyof typeof SERVICE_CONFIG) {
+  const config = SERVICE_CONFIG[service];
+  const apiKey = process.env[config.envKey];
+  
+  if (!apiKey) {
+    throw new Error(`Missing API key: ${config.envKey} environment variable is required for ${service}`);
+  }
+  
+  return {
+    endpoint: config.endpoint,
+    apiKey: apiKey
+  };
+} 

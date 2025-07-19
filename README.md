@@ -25,27 +25,89 @@ Garry Tan (CEO of Y Combinator)'s soul entrapped as a Discord bot. Intelligently
    Create a `.env` file in the root directory:
    ```env
    DISCORD_TOKEN=your_discord_bot_token_here
-   LLM_API_KEY=your_llm_api_key_here
    
-   # Optional: Override default API endpoints and models
-   LLM_API_ENDPOINT=https://api.groq.com/openai/v1/chat/completions
-   LLM_MODEL=gemma2-9b-it
-   CONFIDENCE_API_ENDPOINT=https://api.openai.com/v1/chat/completions
-   CONFIDENCE_API_KEY=your_openai_api_key_here
-   CONFIDENCE_MODEL=gpt-4o-mini
+   # AI Service API Keys (add the ones you plan to use)
+   GROQ_API_KEY=your_groq_api_key_here
+   OPENAI_API_KEY=your_openai_api_key_here
+   XAI_API_KEY=your_xai_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
-4. **Build the project**
+4. **Configure the bot**
+   Edit `src/core/config.ts` to customize the bot's behavior:
+   ```typescript
+   // Main AI service configuration
+   const MAIN_SERVICE_CONFIG = {
+     service: 'groq' as const,           // groq | openai | xai | gemini
+     model: 'gemma2-9b-it'
+   };
+   
+   // Confidence check AI service configuration  
+   const CONFIDENCE_SERVICE_CONFIG = {
+     service: 'openai' as const,         // groq | openai | xai | gemini
+     model: 'gpt-4o-mini',
+     threshold: 0.7,                     // How confident to be before responding
+     messageHistoryLimit: 5
+   };
+   ```
+
+5. **Build the project**
    ```bash
    npm run build
    ```
 
-5. **Start the bot**
+6. **Start the bot**
    ```bash
    npm start
    ```
 
 ## 🔧 Configuration
+
+### Service Providers
+
+The bot supports multiple AI service providers with automatic endpoint and API key selection. Configure your preferred services in `src/core/config.ts`:
+
+| Service | Endpoint | Environment Variable |
+|---------|----------|---------------------|
+| **Groq** | `https://api.groq.com/openai/v1/chat/completions` | `GROQ_API_KEY` |
+| **OpenAI** | `https://api.openai.com/v1/chat/completions` | `OPENAI_API_KEY` |
+| **xAI** | `https://api.x.ai/v1/chat/completions` | `XAI_API_KEY` |
+| **Gemini** | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` | `GEMINI_API_KEY` |
+
+### Dual AI System
+
+The bot uses two separate AI services:
+- **Main Service**: Generates responses and handles tool calls (configured in `MAIN_SERVICE_CONFIG`)
+- **Confidence Service**: Determines when to respond (configured in `CONFIDENCE_SERVICE_CONFIG`)
+
+This allows you to use a fast, cost-effective model for confidence checks while using a more capable model for responses.
+
+### Easy Configuration
+
+All main settings are clearly organized at the top of `src/core/config.ts`:
+
+```typescript
+// =============================================================================
+// MAIN CONFIGURATION - Edit these values to customize the bot
+// =============================================================================
+
+const PERSONALITY = {
+  name: 'Garry Tan',
+  description: '...',
+  communicationStyle: '...'
+};
+
+const MAIN_SERVICE_CONFIG = {
+  service: 'groq' as const,           // Choose your service
+  model: 'gemma2-9b-it'               // Choose your model
+};
+
+const BOT_SETTINGS = {
+  messageHistoryLimit: 10,            // How many messages to consider
+  splitMessages: true,                // Split long responses
+  messageSplitDelay: 200             // Delay between message parts
+};
+```
 
 ### Personality Settings
 
