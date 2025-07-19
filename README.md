@@ -12,7 +12,7 @@ Garry Tan (CEO of Y Combinator)'s soul entrapped as a Discord bot. Intelligently
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/braindead-dev/Garry-Tan
    cd Garry-Tan
    ```
 
