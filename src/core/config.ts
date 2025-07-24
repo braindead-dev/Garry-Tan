@@ -1,6 +1,49 @@
 import { Message } from 'discord.js';
 
 // =============================================================================
+// HELPER FUNCTIONS AND SERVICE CONFIG - Implementation details
+// =============================================================================
+
+// Service configuration mapping
+const SERVICE_CONFIG = {
+  groq: {
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    envKey: 'GROQ_API_KEY'
+  },
+  openai: {
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    envKey: 'OPENAI_API_KEY'
+  },
+  xai: {
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    envKey: 'XAI_API_KEY'
+  },
+  gemini: {
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    envKey: 'GEMINI_API_KEY'
+  }
+} as const;
+
+/**
+ * Gets the API configuration for a given service
+ * @param service - The AI service to use
+ * @returns Object containing endpoint and API key
+ */
+function getServiceConfig(service: keyof typeof SERVICE_CONFIG) {
+  const config = SERVICE_CONFIG[service];
+  const apiKey = process.env[config.envKey];
+  
+  if (!apiKey) {
+    throw new Error(`Missing API key: ${config.envKey} environment variable is required for ${service}`);
+  }
+  
+  return {
+    endpoint: config.endpoint,
+    apiKey: apiKey
+  };
+}
+
+// =============================================================================
 // MAIN CONFIGURATION - Edit these values to customize the bot
 // =============================================================================
 
@@ -132,47 +175,4 @@ export const AGENT_CONFIG: AgentConfig = {
     systemPrompt: SYSTEM_PROMPTS.confidenceCheck,
     threshold: CONFIDENCE_SERVICE_CONFIG.threshold
   }
-};
-
-// =============================================================================
-// HELPER FUNCTIONS - Implementation details
-// =============================================================================
-
-// Service configuration mapping
-const SERVICE_CONFIG = {
-  groq: {
-    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    envKey: 'GROQ_API_KEY'
-  },
-  openai: {
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    envKey: 'OPENAI_API_KEY'
-  },
-  xai: {
-    endpoint: 'https://api.x.ai/v1/chat/completions',
-    envKey: 'XAI_API_KEY'
-  },
-  gemini: {
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    envKey: 'GEMINI_API_KEY'
-  }
-} as const;
-
-/**
- * Gets the API configuration for a given service
- * @param service - The AI service to use
- * @returns Object containing endpoint and API key
- */
-function getServiceConfig(service: keyof typeof SERVICE_CONFIG) {
-  const config = SERVICE_CONFIG[service];
-  const apiKey = process.env[config.envKey];
-  
-  if (!apiKey) {
-    throw new Error(`Missing API key: ${config.envKey} environment variable is required for ${service}`);
-  }
-  
-  return {
-    endpoint: config.endpoint,
-    apiKey: apiKey
-  };
-} 
+}; 
