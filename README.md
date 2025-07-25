@@ -1,6 +1,6 @@
 # Garry Tan Discord Bot
 
-Garry Tan (CEO of Y Combinator)'s soul entrapped as a Discord bot. Intelligently engages in conversation when he wants to, without needing to be mentioned. Just like the real thing.
+Garry Tan (CEO of Y Combinator)'s soul entrapped as a Discord bot. Intelligently engages in conversation when he wants to, without needing to be mentioned. Just like the real thing. This is really moreso a framework for all replication agents.
 
 ## 📋 Prerequisites
 
