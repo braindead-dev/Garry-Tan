@@ -4,6 +4,7 @@ import { runAgent } from './core/agent.js';
 import { AGENT_CONFIG } from './core/config.js';
 import { getServiceConfig } from './core/services.js';
 import { registerCommands, handleCommand } from './commands/index.js';
+import { setupDatabase } from './core/memory/storage/supabase.js';
 
 /**
  * Validates that required environment variables are present.
@@ -118,3 +119,82 @@ client.on('messageCreate', async (message) => {
  * Initiates the bot's connection to Discord using the token from environment variables.
  */
 client.login(process.env.DISCORD_TOKEN); 
+
+// =============================================================================
+// Main Application Logic
+// =============================================================================
+
+async function main() {
+  // Validate that the Discord token is set
+  if (!process.env.DISCORD_TOKEN) {
+    throw new Error('DISCORD_TOKEN environment variable is not set');
+  }
+
+  // Set up the database first
+  await setupDatabase();
+
+  // Create a new Discord client with necessary intents
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMembers,
+    ],
+    partials: [Partials.Message, Partials.Channel],
+  });
+
+  // Event handler for when the bot successfully connects to Discord.
+  // Logs the bot's tag to confirm successful login and registers commands.
+  client.once('ready', async () => {
+    console.log(`Logged in as ${client.user?.tag}!`);
+    await registerCommands(client);
+  });
+
+  // Event handler for slash command interactions.
+  client.on('interactionCreate', async (interaction) => {
+    await handleCommand(interaction, isAsleep, setIsAsleep);
+  });
+
+  // Event handler for new messages in Discord channels.
+  // 
+  // This handler:
+  // 1. Filters out messages from this bot to prevent self-responses
+  // 2. Checks if bot is asleep and handles accordingly
+  // 3. Shows typing indicator while processing
+  // 4. Delegates to the AI agent for processing (agent handles its own filtering)
+  // 5. Handles any errors that occur during processing
+  // 
+  // @param message - The Discord message that was created
+  client.on('messageCreate', async (message) => {
+    // Only filter out messages from this bot to prevent self-responses
+    if (message.author.id === client.user!.id) {
+      return;
+    }
+
+    // Handle sleep state
+    if (isAsleep) {
+      // If mentioned while asleep, reply with grumpy message
+      if (message.mentions.users.has(client.user!.id)) {
+        await message.reply(`${AGENT_CONFIG.personality.name.split(' ')[0]} so sleepy.. go away >_<`);
+      }
+      // Otherwise ignore all messages while asleep
+      return;
+    }
+
+    try {
+      await runAgent(client, message);
+    } catch (error) {
+      console.error('An error occurred in the agent:', error);
+      await message.reply('I ran into an unexpected error. Please try again.');
+    }
+  });
+
+  // Initiates the bot's connection to Discord using the token from environment variables.
+  client.login(process.env.DISCORD_TOKEN);
+}
+
+main().catch(error => {
+  console.error('An error occurred during bot initialization:', error);
+  process.exit(1);
+}); 

@@ -52,6 +52,7 @@ const SERVICE_CONFIG = {
     personality: {
       name: string;
       description: string;
+      communicationStyle: string;
     };
     systemPrompt: (params: { message: any }) => string;
     confidenceCheck: {

@@ -1,13 +1,42 @@
+import { v4 as uuidv4 } from 'uuid';
+import { ChatEvent, Episode, EmbeddingTaskType } from './types.js';
+import { summarizeAndScoreEvents } from './services/summarization.js';
+import { generateEmbedding } from './services/embedding.js';
+import { saveEpisode } from './storage/supabase.js';
+
 /**
- * @file src/core/memory/episodic.ts
- * @description
- * Manages the creation, storage, and retrieval of episodic memories. This is the
- * core of the baby's long-term memory of specific events.
+ * Processes a chunk of chat events to create and store a new episodic memory.
  *
- * Responsibilities:
- * 1.  Deciding when to create a new episode (after N events or T seconds of inactivity).
- * 2.  Orchestrating the summarization and scoring (Importance, Emotion) of events via the services.
- * 3.  Creating the final `Episode` object.
- * 4.  Saving the new episode to the vector DB via the storage module.
- * 5.  Handling the decay of importance over time for fading memory (`I_i(t)`).
- */ 
+ * @param events The array of chat events that form the episode.
+ * @returns A promise that resolves when the episode has been created and saved.
+ */
+export async function createEpisodeFromEvents(events: ChatEvent[]): Promise<void> {
+  if (events.length === 0) {
+    return;
+  }
+
+  console.log(`Creating episode from ${events.length} events...`);
+
+  // 1. Summarize and score the events using an LLM
+  const { summary, importance, emotion } = await summarizeAndScoreEvents(events);
+
+  // 2. Generate an embedding for the summary
+  const embedding = await generateEmbedding(summary, EmbeddingTaskType.RETRIEVAL_DOCUMENT);
+
+  // 3. Create the final episode object
+  const newEpisode: Episode = {
+    ep_id: uuidv4(),
+    summary,
+    embedding,
+    timestamp: Math.floor(Date.now() / 1000),
+    importance,
+    emotion,
+    usage_count: 0,
+    event_ids: events.map(e => e.msg_id),
+  };
+
+  // 4. Save the episode to the database
+  await saveEpisode(newEpisode);
+
+  console.log(`New episode created and saved: ${newEpisode.ep_id}`);
+} 
