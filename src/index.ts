@@ -100,7 +100,7 @@ client.on('messageCreate', async (message) => {
   if (isAsleep) {
     // If mentioned while asleep, reply with grumpy message
     if (message.mentions.users.has(client.user!.id)) {
-      await message.reply('Gary so sleepy.. go away >_<');
+      await message.reply(`${AGENT_CONFIG.personality.name.split(' ')[0]} so sleepy.. go away >_<`);
     }
     // Otherwise ignore all messages while asleep
     return;
