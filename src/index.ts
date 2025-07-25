@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import { runAgent } from './core/agent.js';
+import { AGENT_CONFIG } from './core/config.js';
+import { getServiceConfig } from './core/services.js';
 
 /**
  * Validates that required environment variables are present.
@@ -8,6 +10,22 @@ import { runAgent } from './core/agent.js';
  */
 if (!process.env.DISCORD_TOKEN) {
   throw new Error('Missing DISCORD_TOKEN in .env file');
+}
+
+/**
+ * Validate that API keys for configured services are present.
+ * Throws an error if any required API keys are missing.
+ */
+try {
+  // Check main service API key
+  getServiceConfig(AGENT_CONFIG.service);
+  
+  // Check confidence service API key (only if different from main service)
+  if (AGENT_CONFIG.confidenceCheck.service !== AGENT_CONFIG.service) {
+    getServiceConfig(AGENT_CONFIG.confidenceCheck.service);
+  }
+} catch (error) {
+  throw new Error(`Service configuration error: ${error instanceof Error ? error.message : error}`);
 }
 
 /**
