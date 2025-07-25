@@ -1,8 +1,9 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { runAgent } from './core/agent.js';
 import { AGENT_CONFIG } from './core/config.js';
 import { getServiceConfig } from './core/services.js';
+import { registerCommands, handleCommand } from './commands/index.js';
 
 /**
  * Validates that required environment variables are present.
@@ -34,6 +35,13 @@ try {
 let isAsleep = false;
 
 /**
+ * Helper function to update sleep state (for commands)
+ */
+const setIsAsleep = (value: boolean) => {
+  isAsleep = value;
+};
+
+/**
  * Discord client configuration with necessary intents and partials.
  * 
  * Intents enable the bot to receive specific types of events:
@@ -55,58 +63,19 @@ const client = new Client({
 });
 
 /**
- * Register slash commands with Discord.
- */
-async function registerCommands() {
-  const commands = [
-    new SlashCommandBuilder()
-      .setName('sleep')
-      .setDescription('Put Gary to sleep'),
-    new SlashCommandBuilder()
-      .setName('wake')
-      .setDescription('Wake Gary up'),
-  ];
-
-  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
-
-  try {
-    console.log('Started refreshing application (/) commands.');
-
-    await rest.put(
-      Routes.applicationCommands(client.user!.id),
-      { body: commands.map(command => command.toJSON()) },
-    );
-
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error('Error registering commands:', error);
-  }
-}
-
-/**
  * Event handler for when the bot successfully connects to Discord.
  * Logs the bot's tag to confirm successful login and registers commands.
  */
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user?.tag}!`);
-  await registerCommands();
+  await registerCommands(client);
 });
 
 /**
  * Event handler for slash command interactions.
  */
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const { commandName } = interaction;
-
-  if (commandName === 'sleep') {
-    isAsleep = true;
-    await interaction.reply('Gary go sleep now...');
-  } else if (commandName === 'wake') {
-    isAsleep = false;
-    await interaction.reply('☀️ Gary awake!');
-  }
+  await handleCommand(interaction, isAsleep, setIsAsleep);
 });
 
 /**
