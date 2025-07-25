@@ -1,47 +1,5 @@
 import { Message } from 'discord.js';
-
-// =============================================================================
-// HELPER FUNCTIONS AND SERVICE CONFIG - Implementation details
-// =============================================================================
-
-// Service configuration mapping
-const SERVICE_CONFIG = {
-  groq: {
-    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    envKey: 'GROQ_API_KEY'
-  },
-  openai: {
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    envKey: 'OPENAI_API_KEY'
-  },
-  xai: {
-    endpoint: 'https://api.x.ai/v1/chat/completions',
-    envKey: 'XAI_API_KEY'
-  },
-  gemini: {
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    envKey: 'GEMINI_API_KEY'
-  }
-} as const;
-
-/**
- * Gets the API configuration for a given service
- * @param service - The AI service to use
- * @returns Object containing endpoint and API key
- */
-function getServiceConfig(service: keyof typeof SERVICE_CONFIG) {
-  const config = SERVICE_CONFIG[service];
-  const apiKey = process.env[config.envKey];
-  
-  if (!apiKey) {
-    throw new Error(`Missing API key: ${config.envKey} environment variable is required for ${service}`);
-  }
-  
-  return {
-    endpoint: config.endpoint,
-    apiKey: apiKey
-  };
-}
+import { getServiceConfig, AgentConfig } from './services.js';
 
 // =============================================================================
 // MAIN CONFIGURATION - Edit these values to customize the bot
@@ -55,8 +13,8 @@ const PERSONALITY = {
 
 // Main AI service configuration
 const MAIN_SERVICE_CONFIG = {
-  service: 'groq' as const,
-  model: 'gemma2-9b-it'
+  service: 'openai' as const,
+  model: 'gpt-4o'
 };
 
 // Confidence check AI service configuration  
@@ -123,32 +81,8 @@ Base your score on whether you should send a message RIGHT NOW, directly after t
 };
 
 // =============================================================================
-// SYSTEM CONFIGURATION - Usually don't need to change these
+// SYSTEM CONFIGURATION - Build the final config
 // =============================================================================
-
-export interface AgentConfig {
-  service: 'groq' | 'openai' | 'xai' | 'gemini';
-  apiEndpoint: string;
-  apiKey: string;
-  model: string;
-  messageHistoryLimit: number;
-  splitMessages: boolean;
-  messageSplitDelay: number;
-  personality: {
-    name: string;
-    description: string;
-  };
-  systemPrompt: (params: { message: Message }) => string;
-  confidenceCheck: {
-    service: 'groq' | 'openai' | 'xai' | 'gemini';
-    apiEndpoint: string;
-    apiKey: string;
-    model: string;
-    systemPrompt: string;
-    threshold: number;
-    messageHistoryLimit: number;
-  };
-}
 
 // Get service configurations
 const mainConfig = getServiceConfig(MAIN_SERVICE_CONFIG.service);
