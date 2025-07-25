@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, REST, Routes, Client } from 'discord.js';
+import { REST, Routes, Client } from 'discord.js';
 import { sleepCommand } from './utility/sleep.js';
 import { wakeCommand } from './utility/wake.js';
 
