@@ -1,6 +1,7 @@
 import { REST, Routes, Client } from 'discord.js';
 import { sleepCommand } from './utility/sleep.js';
 import { wakeCommand } from './utility/wake.js';
+import { statusCommand } from './utility/status.js';
 
 /**
  * Collection of all slash commands
@@ -8,6 +9,7 @@ import { wakeCommand } from './utility/wake.js';
 export const commands = [
   sleepCommand,
   wakeCommand,
+  statusCommand,
 ];
 
 /**
