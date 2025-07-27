@@ -12,3 +12,125 @@
  * 5.  Applying the confidence update formula when new evidence is found.
  * 6.  Identifying high-confidence beliefs to be surfaced in the persona block.
  */ 
+import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
+import { AGENT_CONFIG } from '../config.js';
+import { Episode, Belief, MemoryConfig } from './types.js';
+import { getAllBeliefs, saveBelief } from './storage/supabase.js';
+import sql from './storage/db.js';
+
+interface ReflectionResult {
+  insights: {
+    statement: string;
+    supporting_evidence: string; // The summary of an episode that supports it
+  }[];
+}
+
+/**
+ * The core reflection process. Fetches recent memories and uses an LLM to
+ * derive new beliefs or strengthen existing ones.
+ * @param config The memory configuration.
+ */
+export async function reflectOnMemories(config: MemoryConfig): Promise<void> {
+  console.log('Beginning nightly reflection cycle...');
+
+  // 1. Fetch recent episodes and existing beliefs
+  const recentEpisodes = await sql<Episode[]>`
+    SELECT * FROM episodes
+    ORDER BY timestamp DESC
+    LIMIT ${config.reflectionEpisodeBatchSize}
+  `;
+
+  if (recentEpisodes.length < 10) { // Not enough new experience to reflect on
+      console.log('Insufficient new memories to reflect. Skipping cycle.');
+      return;
+  }
+
+  const existingBeliefs = await getAllBeliefs();
+  
+  const episodeSummaries = recentEpisodes.map(e => `- ${e.summary} (Importance: ${e.importance.toFixed(2)}, Emotion: ${e.emotion.toFixed(2)})`).join('\n');
+  const existingBeliefsText = existingBeliefs.map(b => `- ${b.statement} (Confidence: ${b.confidence.toFixed(2)})`).join('\n') || 'None';
+
+  // 2. Use an LLM to find insights and form beliefs
+  const systemPrompt = `You are a psychoanalyst for a young AI named ${AGENT_CONFIG.personality.name}.
+Your job is to analyze the AI's recent memories and its existing beliefs to identify recurring patterns, themes, and insights.
+From these memories, you will form new beliefs or suggest updates to existing ones.
+
+A belief should be a general statement about the world, other people, or the AI itself.
+For example, if the AI often remembers people being kind, a good belief would be "People are generally kind to me."
+Do not just restate a memory. Synthesize a higher-level insight.
+
+Here are the AI's recent memories (as summaries):
+---
+${episodeSummaries}
+---
+
+Here are the AI's current core beliefs:
+---
+${existingBeliefsText}
+---
+
+Based on the memories, what are 1-3 new, salient insights you can draw?
+Provide your response in JSON format.
+`;
+
+  try {
+    const response = await axios.post(
+      AGENT_CONFIG.apiEndpoint,
+      {
+        model: AGENT_CONFIG.model,
+        messages: [{ role: 'system', content: systemPrompt }],
+        response_format: { type: 'json_object' },
+      },
+      { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AGENT_CONFIG.apiKey}` } }
+    );
+
+    const result: ReflectionResult = JSON.parse(response.data.choices[0].message.content);
+    const { insights } = result;
+
+    if (!insights || insights.length === 0) {
+        console.log('Reflection complete. No new insights were generated.');
+        return;
+    }
+
+    // 3. Update or create beliefs based on insights
+    for (const insight of insights) {
+      const supportingEpisode = recentEpisodes.find(e => e.summary === insight.supporting_evidence);
+      if (!supportingEpisode) continue;
+
+      const existingBelief = existingBeliefs.find(b => b.statement === insight.statement);
+      const now = Math.floor(Date.now() / 1000);
+      
+      if (existingBelief) {
+        // Update confidence of existing belief using the formula
+        const newConfidence = 1 - (1 - existingBelief.confidence) * (1 - supportingEpisode.importance);
+        existingBelief.confidence = newConfidence;
+        existingBelief.updated_at = now;
+        if (!existingBelief.supporting_episodes.includes(supportingEpisode.ep_id)) {
+            existingBelief.supporting_episodes.push(supportingEpisode.ep_id);
+        }
+        await saveBelief(existingBelief);
+        console.log(`Strengthened belief: "${existingBelief.statement}" (Confidence: ${newConfidence.toFixed(2)})`);
+      } else {
+        // Create a new belief
+        const newBelief: Belief = {
+          bel_id: uuidv4(),
+          statement: insight.statement,
+          confidence: supportingEpisode.importance, // Initial confidence is the importance of the first evidence
+          created_at: now,
+          updated_at: now,
+          supporting_episodes: [supportingEpisode.ep_id],
+        };
+        await saveBelief(newBelief);
+        console.log(`Formed new belief: "${newBelief.statement}" (Confidence: ${newBelief.confidence.toFixed(2)})`);
+      }
+    }
+    console.log('Nightly reflection cycle complete.');
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+        console.error('Error during reflection LLM call:', error.response?.data || error.message);
+    } else {
+        console.error('An unexpected error occurred during reflection:', error);
+    }
+  }
+} 

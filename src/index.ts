@@ -5,6 +5,9 @@ import { AGENT_CONFIG } from './core/config.js';
 import { getServiceConfig } from './core/services.js';
 import { registerCommands, handleCommand } from './commands/index.js';
 import { setupDatabase } from './core/memory/storage/supabase.js';
+import { reflectOnMemories } from './core/memory/semantic.js';
+import { BABY_MEMORY_CONFIG } from './core/memory/types.js';
+import cron from 'node-cron';
 
 async function main() {
   // Validate that required environment variables are present.
@@ -25,6 +28,15 @@ async function main() {
   // Set up the database before doing anything else
   await setupDatabase();
   console.log('Database connection established and schema verified.');
+
+  // Schedule the nightly reflection job
+  // This will run every day at 3:00 AM server time
+  cron.schedule('0 3 * * *', () => {
+    reflectOnMemories(BABY_MEMORY_CONFIG).catch(err => {
+        console.error("Error during scheduled reflection job:", err);
+    });
+  });
+  console.log('Nightly reflection job scheduled for 3:00 AM.');
 
   // Sleep state tracking
   let isAsleep = false;
