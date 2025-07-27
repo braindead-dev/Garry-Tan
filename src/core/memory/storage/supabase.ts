@@ -10,7 +10,9 @@ const VECTOR_DIMENSION = 768; // Based on Gemini-embedding-001 with controlled d
 export async function setupDatabase() {
   await sql`CREATE EXTENSION IF NOT EXISTS vector`;
 
-  await sql`
+  // Use sql.unsafe for DDL statements where parameters are not allowed for certain parts,
+  // like the vector dimension in CREATE TABLE. This is safe as VECTOR_DIMENSION is a constant.
+  await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS episodes (
       ep_id UUID PRIMARY KEY,
       summary TEXT NOT NULL,
@@ -19,9 +21,9 @@ export async function setupDatabase() {
       importance FLOAT NOT NULL,
       emotion FLOAT NOT NULL,
       usage_count INTEGER NOT NULL DEFAULT 0,
-      event_ids UUID[] NOT NULL
+      event_ids TEXT[] NOT NULL
     )
-  `;
+  `);
 
   await sql`
     CREATE TABLE IF NOT EXISTS beliefs (

@@ -47,24 +47,6 @@ Provide your response in JSON format.
         ],
         response_format: {
           type: 'json_object',
-          schema: {
-            type: 'object',
-            properties: {
-              summary: {
-                type: 'string',
-                description: `A concise, first-person summary from ${personality.name}'s perspective.`,
-              },
-              importance: {
-                type: 'number',
-                description: 'A score from 0.0 to 1.0 indicating the importance of these events.',
-              },
-              emotion: {
-                type: 'number',
-                description: 'A score from -1.0 to 1.0 indicating the emotion.',
-              },
-            },
-            required: ['summary', 'importance', 'emotion'],
-          },
         },
       },
       {

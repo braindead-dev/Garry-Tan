@@ -25,10 +25,8 @@ export async function generateEmbedding(text: string, taskType: EmbeddingTaskTyp
         content: {
           parts: [{ text }],
         },
-        embedding_config: {
-          task_type: taskType,
-          output_dimensionality: OUTPUT_DIMENSIONALITY,
-        },
+        task_type: taskType,
+        output_dimensionality: OUTPUT_DIMENSIONALITY,
       },
       {
         headers: { 'Content-Type': 'application/json' },
