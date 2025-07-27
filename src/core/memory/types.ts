@@ -93,6 +93,22 @@ export type BeliefRow = {
 };
 
 /**
+ * The agent's core identity, stored in the database.
+ */
+export interface Persona {
+    description: string;
+    communication_style: string;
+}
+
+/**
+ * The schema for the 'persona' table in Supabase.
+ */
+export type PersonaRow = {
+    key: 'description' | 'communication_style';
+    value: string;
+};
+
+/**
  * Task types for the Gemini Embedding API to optimize performance.
  * As per your documentation.
  */

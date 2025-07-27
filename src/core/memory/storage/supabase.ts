@@ -1,7 +1,9 @@
 import sql from './db.js';
-import { Belief, BeliefRow, Episode, EpisodeRow } from '../types.js';
+import { Belief, BeliefRow, Episode, EpisodeRow, Persona, PersonaRow } from '../types.js';
+import { AGENT_CONFIG } from '../../config.js';
 
-const VECTOR_DIMENSION = 768; // Based on Gemini-embedding-001 with controlled dimensionality
+// Based on Gemini-embedding-001 with controlled dimensionality
+const VECTOR_DIMENSION = 768;
 
 /**
  * Ensures the required database tables and extensions exist.
@@ -35,6 +37,24 @@ export async function setupDatabase() {
       supporting_episodes UUID[] NOT NULL
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS persona (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )
+  `;
+
+  // Initialize persona from config if it doesn't exist
+  const currentPersona = await getPersona();
+  if (!currentPersona.description) {
+      console.log('Initializing persona from config...');
+      await savePersona({
+          description: AGENT_CONFIG.personality.description,
+          communication_style: AGENT_CONFIG.personality.communicationStyle,
+      });
+  }
+
 
   console.log('Database setup complete. Tables and extensions are ready.');
 }
@@ -118,4 +138,39 @@ export async function getHighConfidenceBeliefs(limit: number): Promise<Belief[]>
         LIMIT ${limit}
     `;
     return result;
+}
+
+/**
+ * Retrieves the current persona from the database.
+ * @returns A promise that resolves to the persona object.
+ */
+export async function getPersona(): Promise<Persona> {
+    const result = await sql<PersonaRow[]>`SELECT * FROM persona`;
+    const persona: Persona = {
+        description: '',
+        communication_style: '',
+    };
+    for (const row of result) {
+        if (row.key === 'description') {
+            persona.description = row.value;
+        } else if (row.key === 'communication_style') {
+            persona.communication_style = row.value;
+        }
+    }
+    return persona;
+}
+
+/**
+ * Saves the entire persona to the database.
+ * @param persona The persona object to save.
+ */
+export async function savePersona(persona: Persona) {
+    await sql`
+        INSERT INTO persona (key, value) VALUES ('description', ${persona.description})
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `;
+    await sql`
+        INSERT INTO persona (key, value) VALUES ('communication_style', ${persona.communication_style})
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `;
 } 

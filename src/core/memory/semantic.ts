@@ -15,8 +15,8 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { AGENT_CONFIG } from '../config.js';
-import { Episode, Belief, MemoryConfig } from './types.js';
-import { getAllBeliefs, saveBelief } from './storage/supabase.js';
+import { Episode, Belief, MemoryConfig, Persona } from './types.js';
+import { getAllBeliefs, getPersona, saveBelief, savePersona } from './storage/supabase.js';
 import sql from './storage/db.js';
 
 interface ReflectionResult {
@@ -26,9 +26,14 @@ interface ReflectionResult {
   }[];
 }
 
+interface PersonaSynthResult {
+    new_description: string;
+    new_communication_style: string;
+}
+
 /**
  * The core reflection process. Fetches recent memories and uses an LLM to
- * derive new beliefs or strengthen existing ones.
+ * derive new beliefs or strengthen existing ones. Also updates the agent's core persona.
  * @param config The memory configuration.
  */
 export async function reflectOnMemories(config: MemoryConfig): Promise<void> {
@@ -125,6 +130,11 @@ Provide your response in JSON format.
         console.log(`Formed new belief: "${newBelief.statement}" (Confidence: ${newBelief.confidence.toFixed(2)})`);
       }
     }
+
+    // 4. Synthesize and update the core persona
+    await synthesizeNewPersona();
+
+
     console.log('Nightly reflection cycle complete.');
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -133,4 +143,67 @@ Provide your response in JSON format.
         console.error('An unexpected error occurred during reflection:', error);
     }
   }
+}
+
+/**
+ * After beliefs are updated, this function synthesizes them into a new persona.
+ */
+async function synthesizeNewPersona(): Promise<void> {
+    const allBeliefs = await getAllBeliefs();
+    if (allBeliefs.length === 0) return;
+
+    const currentPersona = await getPersona();
+
+    const beliefsText = allBeliefs
+        .sort((a,b) => b.confidence - a.confidence)
+        .map(b => `- ${b.statement} (Confidence: ${b.confidence.toFixed(2)})`)
+        .join('\n');
+
+    const systemPrompt = `You are a personality synthesizer for a young AI.
+Your task is to analyze the AI's core beliefs and its current personality description to generate a new, updated personality.
+The new personality should be a natural evolution of the old one, guided by the most confident beliefs.
+
+Current Personality:
+- Description: ${currentPersona.description}
+- Communication Style: ${currentPersona.communication_style}
+
+Core Beliefs (sorted by confidence):
+---
+${beliefsText}
+---
+
+Based on the core beliefs, synthesize a new, one-sentence description for the AI and a new one-sentence communication style.
+The new personality should reflect the themes in the beliefs. For example, if beliefs are about kindness, the new personality should be friendly.
+Provide your response in JSON format.`;
+
+    try {
+        const response = await axios.post(
+            AGENT_CONFIG.apiEndpoint,
+            {
+                model: AGENT_CONFIG.model,
+                messages: [{ role: 'system', content: systemPrompt }],
+                response_format: { type: 'json_object' },
+            },
+            { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AGENT_CONFIG.apiKey}` } }
+        );
+
+        const result: PersonaSynthResult = JSON.parse(response.data.choices[0].message.content);
+
+        const newPersona: Persona = {
+            description: result.new_description,
+            communication_style: result.new_communication_style,
+        };
+
+        await savePersona(newPersona);
+        console.log('Successfully synthesized and updated persona.');
+        console.log(`New Description: ${newPersona.description}`);
+        console.log(`New Style: ${newPersona.communication_style}`);
+
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Error during persona synthesis LLM call:', error.response?.data || error.message);
+        } else {
+            console.error('An unexpected error occurred during persona synthesis:', error);
+        }
+    }
 } 
