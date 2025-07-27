@@ -46,21 +46,11 @@ const SERVICE_CONFIG = {
     apiEndpoint: string;
     apiKey: string;
     model: string;
-    messageHistoryLimit: number;
     splitMessages: boolean;
     messageSplitDelay: number;
     personality: {
       name: string;
       description: string;
-    };
-    systemPrompt: (params: { message: any }) => string;
-    confidenceCheck: {
-      service: 'groq' | 'openai' | 'xai' | 'gemini';
-      apiEndpoint: string;
-      apiKey: string;
-      model: string;
-      systemPrompt: string;
-      threshold: number;
-      messageHistoryLimit: number;
+      communicationStyle: string;
     };
   }

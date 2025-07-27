@@ -1,120 +1,90 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { runAgent } from './core/agent.js';
 import { AGENT_CONFIG } from './core/config.js';
 import { getServiceConfig } from './core/services.js';
 import { registerCommands, handleCommand } from './commands/index.js';
+import { setupDatabase } from './core/memory/storage/supabase.js';
+import { reflectOnMemories } from './core/memory/semantic.js';
+import { BABY_MEMORY_CONFIG } from './core/memory/types.js';
+import cron from 'node-cron';
 
-/**
- * Validates that required environment variables are present.
- * Throws an error if any required variables are missing.
- */
-if (!process.env.DISCORD_TOKEN) {
-  throw new Error('Missing DISCORD_TOKEN in .env file');
-}
-
-/**
- * Validate that API keys for configured services are present.
- * Throws an error if any required API keys are missing.
- */
-try {
-  // Check main service API key
-  getServiceConfig(AGENT_CONFIG.service);
-  
-  // Check confidence service API key (only if different from main service)
-  if (AGENT_CONFIG.confidenceCheck.service !== AGENT_CONFIG.service) {
-    getServiceConfig(AGENT_CONFIG.confidenceCheck.service);
-  }
-} catch (error) {
-  throw new Error(`Service configuration error: ${error instanceof Error ? error.message : error}`);
-}
-
-/**
- * Sleep state tracking - when true, bot ignores all messages except mentions
- */
-let isAsleep = false;
-
-/**
- * Helper function to update sleep state (for commands)
- */
-const setIsAsleep = (value: boolean) => {
-  isAsleep = value;
-};
-
-/**
- * Discord client configuration with necessary intents and partials.
- * 
- * Intents enable the bot to receive specific types of events:
- * - Guilds: Access to guild information
- * - GuildMessages: Read messages in guilds
- * - MessageContent: Access to message content
- * - GuildMembers: Access to member information
- * 
- * Partials allow the bot to work with partial data structures.
- */
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-  ],
-  partials: [Partials.Message, Partials.Channel],
-});
-
-/**
- * Event handler for when the bot successfully connects to Discord.
- * Logs the bot's tag to confirm successful login and registers commands.
- */
-client.once('ready', async () => {
-  console.log(`Logged in as ${client.user?.tag}!`);
-  await registerCommands(client);
-});
-
-/**
- * Event handler for slash command interactions.
- */
-client.on('interactionCreate', async (interaction) => {
-  await handleCommand(interaction, isAsleep, setIsAsleep);
-});
-
-/**
- * Event handler for new messages in Discord channels.
- * 
- * This handler:
- * 1. Filters out messages from this bot to prevent self-responses
- * 2. Checks if bot is asleep and handles accordingly
- * 3. Shows typing indicator while processing
- * 4. Delegates to the AI agent for processing (agent handles its own filtering)
- * 5. Handles any errors that occur during processing
- * 
- * @param message - The Discord message that was created
- */
-client.on('messageCreate', async (message) => {
-  // Only filter out messages from this bot to prevent self-responses
-  if (message.author.id === client.user!.id) {
-    return;
+async function main() {
+  // Validate that required environment variables are present.
+  if (!process.env.DISCORD_TOKEN) {
+    throw new Error('Missing DISCORD_TOKEN in .env file');
   }
 
-  // Handle sleep state
-  if (isAsleep) {
-    // If mentioned while asleep, reply with grumpy message
-    if (message.mentions.users.has(client.user!.id)) {
-      await message.reply(`${AGENT_CONFIG.personality.name.split(' ')[0]} so sleepy.. go away >_<`);
-    }
-    // Otherwise ignore all messages while asleep
-    return;
-  }
-
+  // Validate that API keys for configured services are present.
   try {
-    await runAgent(client, message);
+    getServiceConfig(AGENT_CONFIG.service);
   } catch (error) {
-    console.error('An error occurred in the agent:', error);
-    await message.reply('I ran into an unexpected error. Please try again.');
+    throw new Error(`Service configuration error: ${error instanceof Error ? error.message : error}`);
   }
-});
 
-/**
- * Initiates the bot's connection to Discord using the token from environment variables.
- */
-client.login(process.env.DISCORD_TOKEN); 
+  // Set up the database before doing anything else
+  await setupDatabase();
+  console.log('Database connection established and schema verified.');
+
+  // Schedule the nightly reflection job
+  // This will run every day at 3:00 AM server time
+  cron.schedule('0 3 * * *', () => {
+    reflectOnMemories(BABY_MEMORY_CONFIG).catch(err => {
+        console.error("Error during scheduled reflection job:", err);
+    });
+  });
+  console.log('Nightly reflection job scheduled for 3:00 AM.');
+
+  // Sleep state tracking
+  let isAsleep = false;
+  const setIsAsleep = (value: boolean) => {
+    isAsleep = value;
+  };
+
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMembers,
+    ],
+    partials: [Partials.Message, Partials.Channel],
+  });
+
+  client.once(Events.ClientReady, async readyClient => {
+    console.log(`Logged in as ${readyClient.user.tag}!`);
+    await registerCommands(readyClient);
+  });
+
+  client.on(Events.InteractionCreate, async interaction => {
+    await handleCommand(interaction, isAsleep, setIsAsleep);
+  });
+
+  client.on(Events.MessageCreate, async message => {
+    if (message.author.id === client.user!.id) {
+      return;
+    }
+
+    if (isAsleep) {
+      if (message.mentions.users.has(client.user!.id)) {
+        await message.reply(`${AGENT_CONFIG.personality.name.split(' ')[0]} so sleepy.. go away >_<`);
+      }
+      return;
+    }
+
+    try {
+      await runAgent(client, message);
+    } catch (error) {
+      console.error('An error occurred in the agent:', error);
+      await message.reply('I ran into an unexpected error. Please try again.');
+    }
+  });
+
+  // Login to Discord
+  await client.login(process.env.DISCORD_TOKEN);
+}
+
+main().catch(error => {
+  console.error('An error occurred during bot initialization:', error);
+  process.exit(1);
+}); 
