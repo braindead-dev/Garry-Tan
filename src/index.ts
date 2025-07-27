@@ -18,9 +18,6 @@ async function main() {
   // Validate that API keys for configured services are present.
   try {
     getServiceConfig(AGENT_CONFIG.service);
-    if (AGENT_CONFIG.confidenceCheck.service !== AGENT_CONFIG.service) {
-      getServiceConfig(AGENT_CONFIG.confidenceCheck.service);
-    }
   } catch (error) {
     throw new Error(`Service configuration error: ${error instanceof Error ? error.message : error}`);
   }
