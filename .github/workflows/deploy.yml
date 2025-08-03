@@ -1,0 +1,47 @@
+name: Deploy Gary-Tan Bot
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+    types: [ closed ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || (github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'master'))
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: 22
+        script: |
+          echo "🚀 Starting Gary-Tan bot deployment..."
+          
+          # Navigate to project directory
+          cd /opt/bots/Gary-Tan
+          
+          # Pull latest changes
+          echo "📥 Pulling latest code..."
+          git pull origin main
+          
+          # Install dependencies (in case package.json changed)
+          echo "📦 Installing dependencies..."
+          npm install
+          
+          # Build TypeScript
+          echo "🔨 Building TypeScript..."
+          npm run build
+          
+          # Restart PM2 process (assuming the process is named 'gary-tan')
+          echo "🔄 Restarting PM2 process..."
+          pm2 restart gary-tan || pm2 start dist/index.js --name gary-tan
+          
+          # Show status
+          echo "✅ Gary-Tan bot deployment complete!"
+          pm2 list 
