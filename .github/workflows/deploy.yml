@@ -40,8 +40,8 @@ jobs:
           
           # Restart PM2 process (assuming the process is named 'gary-tan')
           echo "🔄 Restarting PM2 process..."
-          pm2 restart gary-tan || pm2 start dist/index.js --name gary-tan
+          sudo -u botuser pm2 restart gary-tan || sudo -u botuser pm2 start dist/index.js --name gary-tan
           
           # Show status
           echo "✅ Gary-Tan bot deployment complete!"
-          pm2 list 
+          sudo -u botuser pm2 list 
